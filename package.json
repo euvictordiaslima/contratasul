@@ -1,1 +1,1 @@
-{"private":true,"type":"module","scripts":{"criar-admin":"node criar-admin.mjs"},"dependencies":{"firebase-admin":"^13.0.0"}}
+{"private":true,"type":"module","scripts":{"autorizar-beto":"node autorizar-beto.mjs"},"dependencies":{"firebase-admin":"^13.0.0"}}
