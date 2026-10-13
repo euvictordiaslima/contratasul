@@ -1,1 +1,14 @@
-{"private":true,"type":"module","scripts":{"autorizar-beto":"node autorizar-beto.mjs"},"dependencies":{"firebase-admin":"^13.0.0"}}
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node setup/autorizar-beto.mjs",
+    "deploy": "firebase deploy --only firestore:rules,hosting"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.0.0"
+  }
+}

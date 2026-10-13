@@ -34,7 +34,7 @@ service cloud.firestore {
       && request.resource.data.updatedAt is timestamp;
     }
     match /loginAliases/{username} {
-      allow get: if true;
+      allow get: if username == "beto";
       allow list, create, update, delete: if false;
     }
     match /admins/{uid} {
