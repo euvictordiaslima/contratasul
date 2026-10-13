@@ -1,0 +1,29 @@
+# Contrata Sul — site institucional
+
+Site estático responsivo em HTML, CSS e JavaScript, em português brasileiro.
+
+## Como abrir
+1. Extraia o ZIP.
+2. Abra `index.html` no navegador, ou publique a pasta em um serviço de hospedagem estática.
+3. Para publicar em um domínio próprio, envie todos os arquivos mantendo a pasta `assets`.
+
+## O que está incluído
+- Página inicial com identidade visual azul-marinho, dourado e azul.
+- Soluções de recrutamento e seleção, perfil comportamental DISC e orientação profissional.
+- Seções para empresas e profissionais.
+- Exercício interativo introdutório inspirado nos quatro fatores DISC (não é teste psicológico validado).
+- Formulário que prepara uma mensagem e abre o WhatsApp para revisão e envio pelo usuário.
+- Contatos por WhatsApp, telefone e e-mail.
+- Galeria com os três materiais gráficos enviados.
+- Layout responsivo para desktop, tablet e celular.
+
+## Contatos configurados
+- WhatsApp/telefone: +55 49 98835-4130
+- E-mail: contratasulselecao@gmail.com
+- Localização: Xanxerê — Santa Catarina
+
+## Observação
+O formulário não armazena dados em um servidor. Ele abre o WhatsApp com os campos preenchidos para que a pessoa revise e envie. Para receber e armazenar mensagens dentro do próprio site, seria necessário integrar um backend ou serviço de formulários.
+
+
+VAGAS ABERTAS: o gerenciador funciona localmente via localStorage. Cadastre, edite, encerre, exporte e importe vagas em JSON. Vagas NÃO são sincronizadas entre visitantes. Para vagas públicas reais, integre backend/CMS e autenticação administrativa. Não insira dados pessoais sensíveis nas descrições.

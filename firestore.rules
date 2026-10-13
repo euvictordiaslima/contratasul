@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+    function validVaga() {
+      return request.resource.data.keys().hasOnly([
+        'title','company','location','mode','contract','salary',
+        'description','published','createdAt','updatedAt'
+      ])
+      && request.resource.data.keys().hasAll([
+        'title','company','location','mode','contract','salary',
+        'description','published','createdAt','updatedAt'
+      ])
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 0
+      && request.resource.data.title.size() <= 100
+      && request.resource.data.company is string
+      && request.resource.data.company.size() <= 100
+      && request.resource.data.location is string
+      && request.resource.data.location.size() <= 100
+      && request.resource.data.mode in ['Presencial','Híbrido','Remoto']
+      && request.resource.data.contract is string
+      && request.resource.data.contract.size() <= 100
+      && request.resource.data.salary is string
+      && request.resource.data.salary.size() <= 100
+      && request.resource.data.description is string
+      && request.resource.data.description.size() <= 2500
+      && request.resource.data.published is bool
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+    match /admins/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+    match /vagas/{vagaId} {
+      allow get, list: if isAdmin() || resource.data.published == true;
+      allow create: if isAdmin() && validVaga();
+      allow update: if isAdmin() && validVaga()
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
