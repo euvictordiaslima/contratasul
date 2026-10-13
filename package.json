@@ -1,0 +1,1 @@
+{"private":true,"type":"module","scripts":{"criar-admin":"node criar-admin.mjs"},"dependencies":{"firebase-admin":"^13.0.0"}}
