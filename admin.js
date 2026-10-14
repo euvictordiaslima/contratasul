@@ -7,11 +7,39 @@ function status(text){$('status').textContent=text}
 function el(tag,text){const e=document.createElement(tag);e.textContent=text;return e}
 function clear(){ $('vacancy-form').reset();$('vacancy-id').value='';$('form-heading').textContent='Cadastrar vaga'}
 $('clear').addEventListener('click',clear);
-$('login-form').addEventListener('submit',async e=>{e.preventDefault();status('Entrando…');try{const name=$('username').value.trim().toLowerCase();
-  if(!/^[a-z0-9._-]{3,32}$/.test(name)){status('Usuário inválido.');return}
-  const alias=await getDoc(doc(db,'loginAliases',name));
-  if(!alias.exists()||!alias.data().email){status('Usuário não configurado. Execute a configuração administrativa.');return}
-  await signInWithEmailAndPassword(auth,alias.data().email,$('password').value);$('password').value=''}catch(e){console.error('Falha no login:',e.code,e.message);const messages={'auth/invalid-credential':'Credenciais recusadas pelo Firebase. Confira o e-mail da conta Beto no Authentication e redefina a senha se necessário.','auth/invalid-email':'O e-mail vinculado ao usuário Beto é inválido.','auth/user-disabled':'A conta está desativada no Firebase Authentication.','auth/operation-not-allowed':'Ative o provedor E-mail/Senha no Firebase Authentication.','permission-denied':'Não foi possível ler o apelido Beto. Verifique as regras publicadas e a coleção loginAliases.'};status((messages[e.code]||'Falha ao entrar: '+(e.code||'erro desconhecido')))}});
+$('login-form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const entered=$('username').value.trim();
+ const password=$('password').value;
+ status('Verificando acesso…');
+ try {
+  let email=entered;
+  if(!entered.includes('@')){
+   const name=entered.toLowerCase();
+   if(!/^[a-z0-9._-]{3,32}$/.test(name)){status('Digite um usuário válido ou o e-mail da conta Firebase.');return;}
+   try{
+    const alias=await getDoc(doc(db,'loginAliases',name));
+    if(!alias.exists() || !alias.data().email){status('Usuário sem vínculo no banco. Entre usando o e-mail cadastrado no Firebase Authentication (no mesmo campo).');return;}
+    email=alias.data().email;
+   }catch(error){
+    console.warn('Apelido indisponível:',error.code);
+    status('O Firestore não liberou a consulta do usuário. Entre com o e-mail cadastrado no Firebase Authentication neste mesmo campo.');return;
+   }
+  }
+  await signInWithEmailAndPassword(auth,email,password);
+  $('password').value='';
+ }catch(error){
+  console.error('Falha de autenticação:',error.code);
+  const messages={
+   'auth/invalid-credential':'E-mail ou senha não reconhecidos pelo Firebase Authentication. Confira a conta na aba Usuários e redefina a senha se necessário.',
+   'auth/invalid-email':'O e-mail informado não é válido.',
+   'auth/user-disabled':'Esta conta está desativada no Firebase Authentication.',
+   'auth/operation-not-allowed':'Ative o método E-mail/Senha no Firebase Authentication.',
+   'auth/too-many-requests':'Muitas tentativas. Aguarde antes de tentar novamente.'
+  };
+  status(messages[error.code]||('Não foi possível entrar: '+(error.code||'erro desconhecido')));
+ }
+});
 $('logout').addEventListener('click',()=>signOut(auth));
 onAuthStateChanged(auth,async user=>{if(unsub){unsub();unsub=null} $('admin-panel').hidden=true;$('login-panel').hidden=true;clear();if(!user){$('login-panel').hidden=false;return}try{const marker=await getDoc(doc(db,'admins',user.uid));if(!marker.exists()||marker.data().active!==true){status('Esta conta não possui permissão de administrador.');await signOut(auth);return} $('admin-panel').hidden=false;status('Acesso autorizado.');unsub=onSnapshot(collection(db,'vagas'),snapshot=>{jobs=snapshot.docs.map(d=>({id:d.id,...d.data()}));render()},error=>status('Erro ao consultar vagas: '+error.code))}catch(e){status('Não foi possível verificar a autorização: '+e.code);await signOut(auth)}});
 function render(){const box=$('vacancies');box.replaceChildren();$('count').textContent='('+jobs.length+')';if(!jobs.length){box.append(el('p','Nenhuma vaga cadastrada.'));return}for(const j of jobs){const row=document.createElement('article');row.className='vacancy';row.append(el('h3',j.title),el('p',[j.company,j.location,j.mode].filter(Boolean).join(' · ')),el('span',j.published?'Publicada':'Rascunho'));row.lastChild.className='status-tag';const actions=document.createElement('div');actions.className='actions';const edit=el('button','Editar'),toggle=el('button',j.published?'Encerrar publicação':'Publicar');toggle.className='secondary';edit.addEventListener('click',()=>{for(const key of ['title','company','location','mode','contract','salary','description'])$(key).value=j[key]||'';$('published').checked=!!j.published;$('vacancy-id').value=j.id;$('form-heading').textContent='Editar vaga';$('vacancy-form').scrollIntoView({behavior:'smooth'});});toggle.addEventListener('click',async()=>{if(!confirm((j.published?'Encerrar':'Publicar')+' esta vaga?'))return;try{await updateDoc(doc(db,'vagas',j.id),{published:!j.published,updatedAt:serverTimestamp()});status('Situação atualizada.')}catch(e){status('Erro ao atualizar: '+e.code)}});actions.append(edit,toggle);row.append(actions);box.append(row)}}
