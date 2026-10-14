@@ -2,7 +2,7 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 const UID = '0RJfc0qBd1VlT1ObDHsuIgH7Edo1';
 const path = process.env.GOOGLE_APPLICATION_CREDENTIALS;
@@ -21,3 +21,8 @@ await getFirestore().doc(`admins/${UID}`).set({
 await getFirestore().doc('loginAliases/beto').set({ email: user.email, uid: UID });
 console.log('Administrador Beto autorizado com sucesso no Firestore. UID:', UID);
 console.log('E-mail cadastrado no Authentication:', user.email || '(não definido)');
+
+// Configuração pública sem senha: mapeia o apelido Beto para o e-mail existente.
+writeFileSync(new URL('../admin-login-config.js', import.meta.url),
+  `window.CONTRATA_SUL_ADMIN_EMAIL = ${JSON.stringify(user.email)};\n`, 'utf8');
+console.log('Arquivo admin-login-config.js gerado. Publique-o junto ao admin.html.');

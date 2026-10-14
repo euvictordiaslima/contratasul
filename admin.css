@@ -27,3 +27,5 @@ button{transition:filter .15s,transform .15s}
 button:active:not(:disabled){transform:translateY(1px)}
 @media(max-width:480px){header{padding:16px 18px}.brand{font-size:12px}header a{font-size:12px}main{margin-top:20px}.panel{padding:20px}.backup-grid .panel{padding:22px}.heading{flex-direction:column}.admin-tabs button{font-size:13px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
+
+.field-hint{display:block;color:#687f90;font-size:11px;font-weight:400;margin-top:5px}.danger{background:#a32c37!important;color:#fff!important;border-color:#a32c37!important}.danger:hover{background:#86222c!important}.delete-dialog{border:1px solid #dce4eb;border-radius:18px;box-shadow:0 25px 80px #0b243950;width:min(92vw,480px);padding:clamp(24px,4vw,34px);color:#183246}.delete-dialog::backdrop{background:rgba(6,21,35,.65)}.delete-dialog h2{font-size:23px;margin:12px 0}.delete-dialog p{line-height:1.6;color:#516a7c}.delete-dialog #delete-error{color:#a32c37;font-weight:650}.delete-dialog .actions{justify-content:flex-end;flex-wrap:wrap}.delete-dialog input{width:100%}

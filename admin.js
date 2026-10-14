@@ -1,10 +1,23 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {getFirestore,collection,doc,getDoc,getDocsFromServer,onSnapshot,addDoc,updateDoc,writeBatch,Timestamp,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,EmailAuthProvider,reauthenticateWithCredential} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {getFirestore,collection,doc,getDoc,getDocsFromServer,onSnapshot,addDoc,updateDoc,deleteDoc,writeBatch,Timestamp,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);let unsub=null,jobs=[],backupPending=null,adminReady=false;
 function status(text){$('status').textContent=text}
 function el(tag,text){const e=document.createElement(tag);e.textContent=text;return e}
+function normalizedCnpj(value){return String(value||'').replace(/\D/g,'')}
+function validCnpj(value){
+ const digits=normalizedCnpj(value);
+ if(!digits)return true;
+ if(digits.length!==14||/^(\d)\1{13}$/.test(digits))return false;
+ const checksum=(length)=>{
+  let sum=0,weight=length-7;
+  for(let i=0;i<length;i++){sum+=Number(digits[i])*weight;weight=weight===2?9:weight-1}
+  const rem=sum%11;return rem<2?0:11-rem;
+ };
+ return Number(digits[12])===checksum(12)&&Number(digits[13])===checksum(13);
+}
+function formatCnpj(value){const d=normalizedCnpj(value);return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):d}
 function clear(){ $('vacancy-form').reset();$('vacancy-id').value='';$('form-heading').textContent='Cadastrar vaga'}
 $('clear').addEventListener('click',clear);
 $('login-form').addEventListener('submit',async e=>{
@@ -49,8 +62,8 @@ $('login-form').addEventListener('submit',async e=>{
 });
 $('logout').addEventListener('click',()=>signOut(auth));
 onAuthStateChanged(auth,async user=>{if(unsub){unsub();unsub=null} $('admin-panel').hidden=true;$('login-panel').hidden=true;clear();if(!user){adminReady=false;backupPending=null;$('backup-preview').hidden=true;$('restore-backup').disabled=true;$('login-panel').hidden=false;return}try{const marker=await getDoc(doc(db,'admins',user.uid));if(!marker.exists()||marker.data().active!==true){status('Esta conta não possui permissão de administrador.');await signOut(auth);return} adminReady=true;$('admin-panel').hidden=false;status('Acesso autorizado.');unsub=onSnapshot(collection(db,'vagas'),snapshot=>{jobs=snapshot.docs.map(d=>({id:d.id,...d.data()}));render()},error=>status('Erro ao consultar vagas: '+error.code))}catch(e){status('Não foi possível verificar a autorização: '+e.code);await signOut(auth)}});
-function render(){$('metric-total').textContent=jobs.length;$('metric-published').textContent=jobs.filter(j=>j.published).length;$('metric-drafts').textContent=jobs.filter(j=>!j.published).length;const box=$('vacancies');box.replaceChildren();$('count').textContent='('+jobs.length+')';if(!jobs.length){box.append(el('p','Nenhuma vaga cadastrada.'));return}for(const j of jobs){const row=document.createElement('article');row.className='vacancy';row.append(el('h3',j.title),el('p',[j.company,j.location,j.mode].filter(Boolean).join(' · ')),el('span',j.published?'Publicada':'Rascunho'));row.lastChild.className='status-tag';const actions=document.createElement('div');actions.className='actions';const edit=el('button','Editar'),toggle=el('button',j.published?'Encerrar publicação':'Publicar');toggle.className='secondary';edit.addEventListener('click',()=>{for(const key of ['title','company','location','mode','contract','salary','description'])$(key).value=j[key]||'';$('published').checked=!!j.published;$('vacancy-id').value=j.id;$('form-heading').textContent='Editar vaga';$('vacancy-form').scrollIntoView({behavior:'smooth'});});toggle.addEventListener('click',async()=>{if(!confirm((j.published?'Encerrar':'Publicar')+' esta vaga?'))return;try{await updateDoc(doc(db,'vagas',j.id),{published:!j.published,updatedAt:serverTimestamp()});status('Situação atualizada.')}catch(e){status('Erro ao atualizar: '+e.code)}});actions.append(edit,toggle);row.append(actions);box.append(row)}}
-$('vacancy-form').addEventListener('submit',async e=>{e.preventDefault();const data={};for(const key of ['title','company','location','mode','contract','salary','description'])data[key]=$(key).value.trim();data.published=$('published').checked;const id=$('vacancy-id').value;const btn=$('save-button');btn.disabled=true;try{if(id){await updateDoc(doc(db,'vagas',id),{...data,updatedAt:serverTimestamp()})}else{await addDoc(collection(db,'vagas'),{...data,createdAt:serverTimestamp(),updatedAt:serverTimestamp()})}clear();status('Vaga salva com sucesso.')}catch(e){status('Não foi possível salvar: '+e.code)}finally{btn.disabled=false}});
+function render(){$('metric-total').textContent=jobs.length;$('metric-published').textContent=jobs.filter(j=>j.published).length;$('metric-drafts').textContent=jobs.filter(j=>!j.published).length;const box=$('vacancies');box.replaceChildren();$('count').textContent='('+jobs.length+')';if(!jobs.length){box.append(el('p','Nenhuma vaga cadastrada.'));return}for(const j of jobs){const row=document.createElement('article');row.className='vacancy';row.append(el('h3',j.title),el('p',[j.company,j.location,j.mode].filter(Boolean).join(' · ')),el('span',j.published?'Publicada':'Rascunho'));row.lastChild.className='status-tag';const actions=document.createElement('div');actions.className='actions';const edit=el('button','Editar'),toggle=el('button',j.published?'Encerrar publicação':'Publicar');toggle.className='secondary';edit.addEventListener('click',()=>{for(const key of ['title','company','cnpj','location','mode','contract','salary','description'])$(key).value=j[key]||'';$('published').checked=!!j.published;$('vacancy-id').value=j.id;$('form-heading').textContent='Editar vaga';$('vacancy-form').scrollIntoView({behavior:'smooth'});});toggle.addEventListener('click',async()=>{if(!confirm((j.published?'Encerrar':'Publicar')+' esta vaga?'))return;try{await updateDoc(doc(db,'vagas',j.id),{published:!j.published,updatedAt:serverTimestamp()});status('Situação atualizada.')}catch(e){status('Erro ao atualizar: '+e.code)}});const remove=el('button','Excluir vaga');remove.className='danger';remove.type='button';remove.addEventListener('click',()=>requestDeletion(j));actions.append(edit,toggle,remove);row.append(actions);box.append(row)}}
+$('vacancy-form').addEventListener('submit',async e=>{e.preventDefault();const data={};for(const key of ['title','company','cnpj','location','mode','contract','salary','description'])data[key]=$(key).value.trim();if(!validCnpj(data.cnpj)){status('CNPJ inválido. Confira os 14 dígitos ou deixe o campo vazio.');$('cnpj').focus();return}data.cnpj=normalizedCnpj(data.cnpj);data.published=$('published').checked;const id=$('vacancy-id').value;const btn=$('save-button');btn.disabled=true;try{if(id){await updateDoc(doc(db,'vagas',id),{...data,updatedAt:serverTimestamp()})}else{await addDoc(collection(db,'vagas'),{...data,createdAt:serverTimestamp(),updatedAt:serverTimestamp()})}clear();status('Vaga salva com sucesso.')}catch(e){status('Não foi possível salvar: '+e.code)}finally{btn.disabled=false}});
 
 // Navegação interna do painel.
 document.querySelectorAll('.admin-tabs .tab').forEach(tab=>tab.addEventListener('click',()=>{
@@ -59,7 +72,7 @@ document.querySelectorAll('.admin-tabs .tab').forEach(tab=>tab.addEventListener(
 }));
 
 // Backup próprio das vagas (somente conta administrativa autenticada).
-const backupFields=['title','company','location','mode','contract','salary','description','published'];
+const backupFields=['title','company','location','mode','contract','salary','description','cnpj','published'];
 const safeId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id);
 // Aceita timestamps do Firestore, datas ISO, números e documentos antigos sem datas.
 function toISO(value){
@@ -80,10 +93,11 @@ function normalizeJob(row){
   if(field==='published'){if(row[field]==null)row[field]=false;if(typeof row[field]!=='boolean')throw Error('Status de publicação inválido');out[field]=row[field];continue}
   if(row[field]==null)row[field]='';
   if(typeof row[field]!=='string')throw Error('Campo inválido: '+field);
-  const limits={title:100,company:100,location:100,mode:20,contract:100,salary:100,description:2500};
+  const limits={title:100,company:100,location:100,mode:20,contract:100,salary:100,description:2500,cnpj:14};
   if(row[field].length>limits[field]||(field==='title'&&!row[field].trim()))throw Error('Campo fora do limite: '+field);
   out[field]=row[field];
  }
+ if(!validCnpj(out.cnpj))throw Error('CNPJ inválido no backup');out.cnpj=normalizedCnpj(out.cnpj);
  if(!['Presencial','Híbrido','Remoto'].includes(out.mode))out.mode='Presencial';
  const parseTime=value=>{
   if(value===null||value===undefined)return null;
@@ -160,4 +174,38 @@ $('restore-backup').addEventListener('click',async()=>{
   backupMessage('Restauração concluída: '+done+' vaga(s). Os dados foram enviados ao Firestore.');
  }catch(e){backupMessage(`Restauração interrompida após ${done} vaga(s). Verifique o banco antes de tentar novamente. Erro: ${e.code||e.message}`)}
  finally{button.disabled=!backupPending}
+});
+
+// Exclusão definitiva: reautenticação no Firebase, sem senha fixa no código.
+async function requestDeletion(job){
+ if(!adminReady||!auth.currentUser)return;
+ const dialog=$('delete-dialog');
+ $('delete-job-name').textContent=job.title;
+ $('delete-password').value='';$('delete-error').textContent='';
+ dialog.dataset.jobId=job.id;
+ if(typeof dialog.showModal==='function')dialog.showModal();
+ else status('Seu navegador não oferece suporte à confirmação segura de exclusão.');
+}
+$('delete-cancel').addEventListener('click',()=>$('delete-dialog').close());
+$('delete-form').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const user=auth.currentUser,id=$('delete-dialog').dataset.jobId;
+ if(!adminReady||!user||!id)return;
+ const password=$('delete-password').value;
+ const button=$('delete-confirm');button.disabled=true;
+ try{
+  if(!user.email)throw Error('Conta sem e-mail para reautenticação.');
+  await reauthenticateWithCredential(user,EmailAuthProvider.credential(user.email,password));
+  // Reconfere a autorização antes de executar a operação irreversível.
+  const marker=await getDoc(doc(db,'admins',user.uid));
+  if(!marker.exists()||marker.data().active!==true)throw Error('Permissão administrativa revogada.');
+  await deleteDoc(doc(db,'vagas',id));
+  $('delete-dialog').close();$('delete-password').value='';
+  if($('vacancy-id').value===id)clear();
+  status('Vaga excluída permanentemente.');
+ }catch(error){
+  console.error('Falha ao excluir vaga:',error.code||error.message);
+  const messages={'auth/invalid-credential':'Senha incorreta. Confira a senha atual da sua conta.','auth/too-many-requests':'Muitas tentativas. Aguarde para tentar novamente.','permission-denied':'Exclusão negada. Publique as novas regras do Firestore.'};
+  $('delete-error').textContent=messages[error.code]||error.message||'Não foi possível excluir.';
+ }finally{button.disabled=false}
 });

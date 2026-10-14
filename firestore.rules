@@ -9,7 +9,7 @@ service cloud.firestore {
     function validVaga() {
       return request.resource.data.keys().hasOnly([
         'title','company','location','mode','contract','salary',
-        'description','published','createdAt','updatedAt'
+        'description','cnpj','published','createdAt','updatedAt'
       ])
       && request.resource.data.keys().hasAll([
         'title','company','location','mode','contract','salary',
@@ -29,6 +29,7 @@ service cloud.firestore {
       && request.resource.data.salary.size() <= 100
       && request.resource.data.description is string
       && request.resource.data.description.size() <= 2500
+      && (!request.resource.data.keys().hasAny(['cnpj']) || (request.resource.data.cnpj is string && (request.resource.data.cnpj == '' || request.resource.data.cnpj.matches('^[0-9]{14}$'))))
       && request.resource.data.published is bool
       && request.resource.data.createdAt is timestamp
       && request.resource.data.updatedAt is timestamp;
@@ -47,7 +48,9 @@ service cloud.firestore {
       allow create: if isAdmin() && validVaga();
       allow update: if isAdmin() && validVaga()
         && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if false;
+      allow delete: if isAdmin()
+        && request.auth.token.auth_time is int
+        && request.auth.token.auth_time > (request.time.toMillis() / 1000) - 300;
     }
     match /{document=**} {
       allow read, write: if false;
