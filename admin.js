@@ -1,6 +1,6 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {getFirestore,collection,doc,getDoc,onSnapshot,addDoc,updateDoc,writeBatch,Timestamp,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import {getFirestore,collection,doc,getDoc,getDocsFromServer,onSnapshot,addDoc,updateDoc,writeBatch,Timestamp,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);let unsub=null,jobs=[],backupPending=null,adminReady=false;
 function status(text){$('status').textContent=text}
@@ -61,20 +61,33 @@ document.querySelectorAll('.admin-tabs .tab').forEach(tab=>tab.addEventListener(
 // Backup próprio das vagas (somente conta administrativa autenticada).
 const backupFields=['title','company','location','mode','contract','salary','description','published'];
 const safeId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id);
+// Aceita timestamps do Firestore, datas ISO, números e documentos antigos sem datas.
+function toISO(value){
+ if(value==null)return null;
+ let date;
+ if(typeof value?.toDate==='function')date=value.toDate();
+ else if(typeof value==='string'||typeof value==='number')date=new Date(value);
+ else if(typeof value?.seconds==='number')date=new Date(value.seconds*1000+Math.floor((value.nanoseconds||0)/1e6));
+ else if(typeof value?._seconds==='number')date=new Date(value._seconds*1000+Math.floor((value._nanoseconds||0)/1e6));
+ else return null;
+ return Number.isFinite(date.getTime())?date.toISOString():null;
+}
+
 function normalizeJob(row){
  if(!row||typeof row!=='object'||Array.isArray(row)||!safeId(row.id))throw Error('ID de vaga inválido');
  const out={id:row.id};
  for(const field of backupFields){
-  if(field==='published'){if(typeof row[field]!=='boolean')throw Error('Status de publicação inválido');out[field]=row[field];continue}
+  if(field==='published'){if(row[field]==null)row[field]=false;if(typeof row[field]!=='boolean')throw Error('Status de publicação inválido');out[field]=row[field];continue}
+  if(row[field]==null)row[field]='';
   if(typeof row[field]!=='string')throw Error('Campo inválido: '+field);
   const limits={title:100,company:100,location:100,mode:20,contract:100,salary:100,description:2500};
   if(row[field].length>limits[field]||(field==='title'&&!row[field].trim()))throw Error('Campo fora do limite: '+field);
   out[field]=row[field];
  }
- if(!['Presencial','Híbrido','Remoto'].includes(out.mode))throw Error('Modalidade inválida');
+ if(!['Presencial','Híbrido','Remoto'].includes(out.mode))out.mode='Presencial';
  const parseTime=value=>{
   if(value===null||value===undefined)return null;
-  if(typeof value!=='string'||!/^\\d{4}-\\d{2}-\\d{2}T/.test(value)||Number.isNaN(Date.parse(value)))throw Error('Data inválida');
+  if(typeof value!=='string'||Number.isNaN(Date.parse(value)))return null;
   return value;
  };
  out.createdAt=parseTime(row.createdAt);out.updatedAt=parseTime(row.updatedAt);
@@ -86,13 +99,12 @@ $('export-backup').addEventListener('click',async()=>{
  const button=$('export-backup');button.disabled=true;
  try{
   // Busca diretamente no servidor, incluindo rascunhos, para evitar exportar dados incompletos.
-  const {getDocsFromServer}=await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
   const snapshot=await getDocsFromServer(collection(db,'vagas'));
   const entries=snapshot.docs.map(item=>{
    const data=item.data(),record={id:item.id};
    for(const key of backupFields)record[key]=data[key];
-   record.createdAt=data.createdAt?.toDate?.().toISOString()||null;
-   record.updatedAt=data.updatedAt?.toDate?.().toISOString()||null;
+   record.createdAt=toISO(data.createdAt);
+   record.updatedAt=toISO(data.updatedAt);
    return normalizeJob(record);
   });
   const payload={format:'contrata-sul-vagas',version:1,exportedAt:new Date().toISOString(),projectId:'contrata-sul',count:entries.length,vagas:entries};
@@ -116,7 +128,7 @@ $('backup-file').addEventListener('change',async event=>{
   if(new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('IDs duplicados no backup');
   backupPending=rows;
   $('backup-preview').hidden=false;
-  $('backup-preview').textContent=`Arquivo validado: ${rows.length} vaga(s), ${rows.filter(row=>row.published).length} publicada(s). Backup de ${payload.exportedAt?new Date(payload.exportedAt).toLocaleString('pt-BR'):'data não informada'}.`;
+  $('backup-preview').textContent=`Arquivo validado: ${rows.length} vaga(s), ${rows.filter(row=>row.published).length} publicada(s). Backup de ${payload.exportedAt?(toISO(payload.exportedAt)?new Date(payload.exportedAt).toLocaleString('pt-BR'):'data não informada'):'data não informada'}.`;
   $('restore-backup').disabled=!adminReady;
   backupMessage('Backup validado. Confirme a restauração para gravar as vagas no Firestore.');
  }catch(e){backupMessage('Arquivo rejeitado: '+e.message)}
@@ -129,13 +141,19 @@ $('restore-backup').addEventListener('click',async()=>{
  let done=0;
  try{
   // Lotes limitados a 200 gravações; preservar o createdAt original quando possível.
-  for(let i=0;i<rows.length;i+=200){
+  for(let i=0;i<rows.length;i+=150){
    const batch=writeBatch(db);
-   for(const row of rows.slice(i,i+200)){
+   const group=rows.slice(i,i+150);
+   const existing=await Promise.all(group.map(row=>getDoc(doc(db,'vagas',row.id))));
+   for(let n=0;n<group.length;n++){
+    const row=group[n],current=existing[n];
     const {id,createdAt,updatedAt,...fields}=row;
-    batch.set(doc(db,'vagas',id),{...fields,createdAt:createdAt?Timestamp.fromDate(new Date(createdAt)):serverTimestamp(),updatedAt:updatedAt?Timestamp.fromDate(new Date(updatedAt)):serverTimestamp()});
+    // Regras não permitem modificar createdAt de um documento existente.
+    const original=current.exists()?current.data().createdAt:null;
+    const created=original||(createdAt?Timestamp.fromDate(new Date(createdAt)):serverTimestamp());
+    batch.set(doc(db,'vagas',id),{...fields,createdAt:created,updatedAt:serverTimestamp()});
    }
-   await batch.commit();done+=Math.min(200,rows.length-i);
+   await batch.commit();done+=Math.min(150,rows.length-i);
    backupMessage(`Restauração: ${done} de ${rows.length} vaga(s) processadas.`);
   }
   backupPending=null;$('backup-file').value='';$('backup-preview').hidden=true;
