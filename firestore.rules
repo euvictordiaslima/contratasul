@@ -34,7 +34,7 @@ service cloud.firestore {
       && request.resource.data.updatedAt is timestamp;
     }
     match /loginAliases/{username} {
-      allow get: if username == "beto";
+      allow get: if false;
       allow list, create, update, delete: if false;
     }
     match /admins/{uid} {
@@ -42,7 +42,8 @@ service cloud.firestore {
       allow list, create, update, delete: if false;
     }
     match /vagas/{vagaId} {
-      allow get, list: if isAdmin() || resource.data.published == true;
+      allow get: if isAdmin() || resource.data.published == true;
+      allow list: if isAdmin() || resource.data.published == true;
       allow create: if isAdmin() && validVaga();
       allow update: if isAdmin() && validVaga()
         && request.resource.data.createdAt == resource.data.createdAt;

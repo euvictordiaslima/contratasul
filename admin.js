@@ -15,15 +15,22 @@ $('login-form').addEventListener('submit',async e=>{
  try {
   let email=entered;
   if(!entered.includes('@')){
-   const name=entered.toLowerCase();
-   if(!/^[a-z0-9._-]{3,32}$/.test(name)){status('Digite um usuário válido ou o e-mail da conta Firebase.');return;}
-   try{
-    const alias=await getDoc(doc(db,'loginAliases',name));
-    if(!alias.exists() || !alias.data().email){status('Usuário sem vínculo no banco. Entre usando o e-mail cadastrado no Firebase Authentication (no mesmo campo).');return;}
-    email=alias.data().email;
-   }catch(error){
-    console.warn('Apelido indisponível:',error.code);
-    status('O Firestore não liberou a consulta do usuário. Entre com o e-mail cadastrado no Firebase Authentication neste mesmo campo.');return;
+   if(entered.toLowerCase() !== 'beto'){
+    status('Usuário não cadastrado. Use Beto ou o e-mail do Firebase Authentication.');return;
+   }
+   const configured=String(window.CONTRATA_SUL_ADMIN_EMAIL || '').trim();
+   if(configured && configured.includes('@')){
+    email=configured;
+   }else{
+    try{
+     const alias=await getDoc(doc(db,'loginAliases','beto'));
+     if(!alias.exists() || !alias.data().email){
+      status('O usuário Beto ainda não foi vinculado ao e-mail do Firebase. Entre usando o e-mail cadastrado no Authentication ou execute a configuração inicial.');return;
+     }
+     email=alias.data().email;
+    }catch(error){
+     status('Não foi possível consultar o apelido Beto. Entre usando o e-mail cadastrado no Authentication.');return;
+    }
    }
   }
   await signInWithEmailAndPassword(auth,email,password);
