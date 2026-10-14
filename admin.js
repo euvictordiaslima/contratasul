@@ -68,7 +68,7 @@ $('vacancy-form').addEventListener('submit',async e=>{e.preventDefault();const d
 // Navegação interna do painel.
 document.querySelectorAll('.admin-tabs .tab').forEach(tab=>tab.addEventListener('click',()=>{
  document.querySelectorAll('.admin-tabs .tab').forEach(item=>{item.classList.toggle('active',item===tab);item.setAttribute('aria-selected',String(item===tab))});
- for(const id of ['tab-jobs','tab-backup'])$(id).hidden=id!==tab.dataset.target;
+ document.querySelectorAll('#admin-panel > section[id^="tab-"]').forEach(section=>section.hidden=section.id!==tab.dataset.target);
 }));
 
 // Backup próprio das vagas (somente conta administrativa autenticada).

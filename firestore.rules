@@ -52,6 +52,84 @@ service cloud.firestore {
         && request.auth.token.auth_time is int
         && request.auth.token.auth_time > (request.time.toMillis() / 1000) - 300;
     }
+    function shortText(field, maxLen) {
+      return field is string && field.size() <= maxLen;
+    }
+    match /candidaturas/{id} {
+      allow create: if request.auth == null
+        && request.resource.data.keys().hasOnly(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
+        && request.resource.data.keys().hasAll(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
+        && shortText(request.resource.data.jobId, 128)
+        && request.resource.data.jobId.matches('^[a-zA-Z0-9_-]+$')
+        && exists(/databases/$(database)/documents/vagas/$(request.resource.data.jobId))
+        && get(/databases/$(database)/documents/vagas/$(request.resource.data.jobId)).data.published == true
+        && request.resource.data.jobTitle == get(/databases/$(database)/documents/vagas/$(request.resource.data.jobId)).data.title
+        && shortText(request.resource.data.name, 100) && request.resource.data.name.size() > 1
+        && shortText(request.resource.data.email, 150) && request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')
+        && shortText(request.resource.data.phone, 25) && request.resource.data.phone.size() > 5
+        && shortText(request.resource.data.message, 1500)
+        && request.resource.data.consent == true
+        && request.resource.data.stage == 'Recebido'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow get, list: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage','updatedAt'])
+        && request.resource.data.stage in ['Recebido','Em análise','Entrevista','Aprovado','Encerrado']
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin() && request.auth.token.auth_time > (request.time.toMillis()/1000)-300;
+    }
+    match /empresas/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name','cnpj','email','phone','city','createdAt','updatedAt'])
+        && shortText(request.resource.data.name,100) && request.resource.data.name.size()>0
+        && shortText(request.resource.data.cnpj,14)
+        && shortText(request.resource.data.email,150)
+        && shortText(request.resource.data.phone,25)
+        && shortText(request.resource.data.city,100)
+        && request.resource.data.updatedAt is timestamp
+        && (resource == null || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isAdmin() && request.auth.token.auth_time > (request.time.toMillis()/1000)-300;
+    }
+    match /entrevistas/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['candidateId','candidateName','when','location','notes','status','createdAt'])
+        && shortText(request.resource.data.candidateId,128)
+        && shortText(request.resource.data.candidateName,100)
+        && shortText(request.resource.data.when,40)
+        && shortText(request.resource.data.location,300)
+        && shortText(request.resource.data.notes,1000)
+        && request.resource.data.status == 'Agendada'
+        && request.resource.data.createdAt is timestamp;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['Agendada','Concluída','Cancelada'];
+      allow delete: if isAdmin() && request.auth.token.auth_time > (request.time.toMillis()/1000)-300;
+    }
+    match /configuracoes/{id} {
+      allow get: if id == 'site';
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && id == 'site'
+        && request.resource.data.keys().hasOnly(['title','description','whatsapp','updatedAt'])
+        && shortText(request.resource.data.title,120)
+        && shortText(request.resource.data.description,600)
+        && request.resource.data.whatsapp is string
+        && request.resource.data.whatsapp.matches('^[0-9]{10,15}$')
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if false;
+    }
+    match /historico/{id} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['action','detail','actor','at'])
+        && shortText(request.resource.data.action,100)
+        && shortText(request.resource.data.detail,180)
+        && request.resource.data.actor == request.auth.uid
+        && request.resource.data.at == request.time;
+      allow update, delete: if false;
+    }
     match /{document=**} {
       allow read, write: if false;
     }
