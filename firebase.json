@@ -15,7 +15,11 @@
       "package-lock.json",
       "CONFIGURAR.md",
       "*.mjs",
-      "*.md"
+      "*.md",
+      "*.json",
+      "**/service-account*.json",
+      "**/*private*.json",
+      "*.mjs"
     ],
     "headers": [
       {

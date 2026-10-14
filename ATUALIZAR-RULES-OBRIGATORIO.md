@@ -1,19 +1,18 @@
-# ATENÇÃO — PUBLICAR AS NOVAS RULES
+# ATENÇÃO — ATUALIZAR FIRESTORE RULES
 
-Esta versão exige atualização de `firestore.rules`. Acesse Firebase Console → Cloud Firestore → Regras, substitua o conteúdo pelo arquivo `firestore.rules` deste ZIP e clique em Publicar. Faça isso antes de testar candidaturas e o painel novo.
+**SIM, PRECISA ATUALIZAR AS RULES** para esta versão.
 
-Novas coleções: `candidaturas`, `empresas`, `entrevistas`, `configuracoes`, `historico`. Não crie manualmente: os primeiros documentos são criados pelos formulários quando houver autorização. A coleção `admins` e o login existente continuam necessários.
+1. Abra o Console Firebase > Cloud Firestore > Regras, no projeto `contrata-sul`.
+2. Substitua as regras pelo conteúdo de `firestore.rules` deste ZIP e publique.
+3. Publique os arquivos do site e atualize com Ctrl+Shift+R.
 
-O formulário público permite enviar candidatura sem conta. O banco restringe a criação a vagas publicadas, campos específicos e consentimento. Leituras de dados pessoais são exclusivas de administradores. Para produção, considere App Check, proteção anti-spam e uma política de privacidade/LGPD; regras sozinhas não impedem abuso ou excesso de submissões.
+## O que mudou
+- CNPJ opcional (14 dígitos, com validação de dígitos verificadores no formulário).
+- Exclusão definitiva de vagas somente por administradores com login recente. O painel solicita a senha da conta atual e usa `reauthenticateWithCredential` do Firebase.
+- Senha **não está no JavaScript**, nem no Firestore. Não existe senha-mestra pública.
+- A exclusão exige autenticação recente (5 minutos) nas regras.
+- O backup agora inclui `cnpj`; backups antigos sem o campo continuam aceitos.
 
-## Backup
+**Importante:** a reautenticação funciona com a senha atual da conta Firebase Authentication, não com uma senha arbitrária independente. Como a senha foi compartilhada na conversa, recomenda-se redefini-la.
 
-O backup anterior de vagas permanece disponível. O botão "Exportar backup completo" exporta vagas, empresas, candidaturas, entrevistas, histórico e configurações. **O backup completo ainda não oferece restauração integral automática** nesta versão. A restauração automática da aba cobre somente vagas. Contas do Authentication, permissões, regras e arquivos não são exportados.
-
-## Hospedagem
-
-Envie todos os arquivos para o GitHub Pages/Firebase Hosting e atualize sem cache. A página `candidatar.html` é pública. O Firebase deve estar configurado para o mesmo projeto. Nunca publique chaves de serviço.
-
-## Verificação
-
-O código foi validado quanto à sintaxe JavaScript. As operações com Firestore, regras, telas e fluxo de candidaturas exigem teste com o projeto Firebase real antes de produção.
+Exclusões são irreversíveis sem um backup. Faça backup antes de excluir vagas.

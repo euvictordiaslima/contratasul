@@ -34,6 +34,19 @@ service cloud.firestore {
       && request.resource.data.createdAt is timestamp
       && request.resource.data.updatedAt is timestamp;
     }
+    match /lixeira/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.auth.token.auth_time is int
+        && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000
+        && request.resource.data.originalId == id
+        && request.resource.data.deletedBy == request.auth.uid
+        && request.resource.data.deletedAt == request.time
+        && request.resource.data.keys().hasAll(['title','company','location','mode','contract','salary','description','published','createdAt','updatedAt','originalId','deletedAt','deletedBy']);
+      allow delete: if isAdmin() && request.auth.token.auth_time is int
+        && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
+      allow update: if false;
+    }
     match /loginAliases/{username} {
       allow get: if false;
       allow list, create, update, delete: if false;
@@ -50,13 +63,26 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin()
         && request.auth.token.auth_time is int
-        && request.auth.token.auth_time > (request.time.toMillis() / 1000) - 300;
+        && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
     }
     function shortText(field, maxLen) {
       return field is string && field.size() <= maxLen;
     }
+    function validCandidaturaAdmin() {
+      return request.resource.data.keys().hasOnly(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
+        && shortText(request.resource.data.jobId,128)
+        && shortText(request.resource.data.jobTitle,100)
+        && shortText(request.resource.data.name,100)
+        && shortText(request.resource.data.email,150)
+        && shortText(request.resource.data.phone,25)
+        && shortText(request.resource.data.message,1500)
+        && request.resource.data.consent == true
+        && request.resource.data.stage in ['Recebido','Em análise','Entrevista','Aprovado','Encerrado']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
     match /candidaturas/{id} {
-      allow create: if request.auth == null
+      allow create: if (isAdmin() && validCandidaturaAdmin()) || (request.auth == null
         && request.resource.data.keys().hasOnly(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
         && request.resource.data.keys().hasAll(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
         && shortText(request.resource.data.jobId, 128)
@@ -71,13 +97,13 @@ service cloud.firestore {
         && request.resource.data.consent == true
         && request.resource.data.stage == 'Recebido'
         && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time);
       allow get, list: if isAdmin();
-      allow update: if isAdmin()
+      allow update: if (isAdmin() && validCandidaturaAdmin()) || (isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage','updatedAt'])
         && request.resource.data.stage in ['Recebido','Em análise','Entrevista','Aprovado','Encerrado']
-        && request.resource.data.updatedAt == request.time;
-      allow delete: if isAdmin() && request.auth.token.auth_time > (request.time.toMillis()/1000)-300;
+        && request.resource.data.updatedAt == request.time);
+      allow delete: if isAdmin() && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
     }
     match /empresas/{id} {
       allow read: if isAdmin();
@@ -90,11 +116,21 @@ service cloud.firestore {
         && shortText(request.resource.data.city,100)
         && request.resource.data.updatedAt is timestamp
         && (resource == null || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if isAdmin() && request.auth.token.auth_time > (request.time.toMillis()/1000)-300;
+      allow delete: if isAdmin() && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
+    }
+    function validEntrevista() {
+      return request.resource.data.keys().hasOnly(['candidateId','candidateName','when','location','notes','status','createdAt'])
+        && shortText(request.resource.data.candidateId,128)
+        && shortText(request.resource.data.candidateName,100)
+        && shortText(request.resource.data.when,40)
+        && shortText(request.resource.data.location,300)
+        && shortText(request.resource.data.notes,1000)
+        && request.resource.data.status in ['Agendada','Concluída','Cancelada']
+        && request.resource.data.createdAt is timestamp;
     }
     match /entrevistas/{id} {
       allow read: if isAdmin();
-      allow create: if isAdmin()
+      allow create: if (isAdmin() && validEntrevista()) || (isAdmin()
         && request.resource.data.keys().hasOnly(['candidateId','candidateName','when','location','notes','status','createdAt'])
         && shortText(request.resource.data.candidateId,128)
         && shortText(request.resource.data.candidateName,100)
@@ -102,11 +138,11 @@ service cloud.firestore {
         && shortText(request.resource.data.location,300)
         && shortText(request.resource.data.notes,1000)
         && request.resource.data.status == 'Agendada'
-        && request.resource.data.createdAt is timestamp;
-      allow update: if isAdmin()
+        && request.resource.data.createdAt is timestamp);
+      allow update: if (isAdmin() && validEntrevista()) || (isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-        && request.resource.data.status in ['Agendada','Concluída','Cancelada'];
-      allow delete: if isAdmin() && request.auth.token.auth_time > (request.time.toMillis()/1000)-300;
+        && request.resource.data.status in ['Agendada','Concluída','Cancelada']);
+      allow delete: if isAdmin() && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
     }
     match /configuracoes/{id} {
       allow get: if id == 'site';

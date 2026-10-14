@@ -199,10 +199,15 @@ $('delete-form').addEventListener('submit',async event=>{
   // Reconfere a autorização antes de executar a operação irreversível.
   const marker=await getDoc(doc(db,'admins',user.uid));
   if(!marker.exists()||marker.data().active!==true)throw Error('Permissão administrativa revogada.');
-  await deleteDoc(doc(db,'vagas',id));
+  const current=await getDoc(doc(db,'vagas',id));
+  if(!current.exists())throw Error('Vaga não encontrada.');
+  const batch=writeBatch(db);
+  batch.set(doc(db,'lixeira',id),{...current.data(),originalId:id,deletedAt:serverTimestamp(),deletedBy:user.uid});
+  batch.delete(doc(db,'vagas',id));
+  await batch.commit();
   $('delete-dialog').close();$('delete-password').value='';
   if($('vacancy-id').value===id)clear();
-  status('Vaga excluída permanentemente.');
+  status('Vaga movida para a lixeira. Você pode recuperá-la pelo painel.');
  }catch(error){
   console.error('Falha ao excluir vaga:',error.code||error.message);
   const messages={'auth/invalid-credential':'Senha incorreta. Confira a senha atual da sua conta.','auth/too-many-requests':'Muitas tentativas. Aguarde para tentar novamente.','permission-denied':'Exclusão negada. Publique as novas regras do Firestore.'};
