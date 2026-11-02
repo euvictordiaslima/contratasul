@@ -200,7 +200,43 @@ service cloud.firestore {
         && request.resource.data.at == request.time;
       allow update, delete: if false;
     }
+    // Acesso individual ao portal empresarial. Somente o administrador pode vincular um UID.
+    function portalMember(companyId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/portal_empresas/$(request.auth.uid))
+        && get(/databases/$(database)/documents/portal_empresas/$(request.auth.uid)).data.active == true
+        && get(/databases/$(database)/documents/portal_empresas/$(request.auth.uid)).data.companyId == companyId;
+    }
+    match /portal_empresas/{uid} {
+      allow get: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['companyId','companyName','tradeName','active','createdAt','updatedAt'])
+        && request.resource.data.keys().hasAll(['companyId','companyName','tradeName','active','createdAt','updatedAt'])
+        && request.resource.data.companyId is string
+        && request.resource.data.companyId.matches('^[A-Za-z0-9_-]{1,128}$')
+        && exists(/databases/$(database)/documents/empresas/$(request.resource.data.companyId))
+        && request.resource.data.companyName is string
+        && request.resource.data.companyName.size() <= 120
+        && request.resource.data.tradeName is string
+        && request.resource.data.tradeName.size() <= 120
+        && request.resource.data.active is bool
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['companyId','companyName','tradeName','active','createdAt','updatedAt'])
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.companyName is string
+        && request.resource.data.companyName.size() <= 120
+        && request.resource.data.tradeName is string
+        && request.resource.data.tradeName.size() <= 120
+        && request.resource.data.active is bool
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
     // CRM: todos os dados empresariais e pessoais são privados ao administrador.
+
     function crmText(data, field, maxLen) {
       return data.get(field, '') is string && data.get(field, '').size() <= maxLen;
     }
@@ -251,7 +287,8 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /crm_solicitacoes/{id} {
-      allow read: if isAdmin();
+      // No portal, a consulta deve filtrar companyId == empresa autorizada.
+      allow read: if isAdmin() || portalMember(resource.data.companyId);
       allow create: if isAdmin() && crmValid('solicitacoes') && request.resource.data.createdAt == request.time;
       allow update: if isAdmin() && crmValid('solicitacoes') && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.companyId == resource.data.companyId;
       allow delete: if false;
@@ -272,6 +309,77 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if isAdmin() && crmValid('atividades') && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
+    }
+    // Metadados e atividades novos do CRM. Arquivos não são armazenados aqui.
+    function crmExtra() {
+      return request.resource.data.keys().hasOnly([
+        'companyId','title','status','amount','due','details',
+        'category','reference','author','rating','text','createdAt','updatedAt'
+      ])
+      && request.resource.data.keys().hasAll(['companyId','createdAt','updatedAt'])
+      && request.resource.data.companyId is string
+      && request.resource.data.companyId.matches('^[A-Za-z0-9_-]{1,128}$')
+      && exists(/databases/$(database)/documents/empresas/$(request.resource.data.companyId))
+      && crmText(request.resource.data,'title',150)
+      && crmText(request.resource.data,'status',35)
+      && crmText(request.resource.data,'due',10)
+      && crmText(request.resource.data,'details',1200)
+      && crmText(request.resource.data,'category',40)
+      && crmText(request.resource.data,'reference',300)
+      && crmText(request.resource.data,'author',100)
+      && crmText(request.resource.data,'text',1200)
+      && request.resource.data.get('amount',0) is number
+      && request.resource.data.get('amount',0) >= 0
+      && request.resource.data.get('amount',0) <= 999999999
+      && request.resource.data.get('rating',5) is int
+      && request.resource.data.get('rating',5) >= 1
+      && request.resource.data.get('rating',5) <= 5
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+    match /crm_propostas/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && crmExtra()
+        && request.resource.data.status in ['Rascunho','Enviada','Em negociação','Aprovada','Recusada']
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && crmExtra()
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['Rascunho','Enviada','Em negociação','Aprovada','Recusada'];
+      allow delete: if false;
+    }
+    match /crm_financeiro/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && crmExtra()
+        && request.resource.data.status in ['Pendente','Pago','Cancelado']
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && crmExtra()
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['Pendente','Pago','Cancelado'];
+      allow delete: if false;
+    }
+    match /crm_documentos/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && crmExtra()
+        && request.resource.data.category in ['Contrato','Proposta','Comprovante','Relatório','Outro']
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && crmExtra()
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+    match /crm_avaliacoes/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && crmExtra()
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && crmExtra()
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
     }
     match /{document=**} {
       allow read, write: if false;

@@ -183,6 +183,11 @@ function renderCompanies() {
       companyForm.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
       $('company-name').focus({ preventScroll: true });
     }));
+    item.append(addButton('Abrir central da empresa →', () => {
+      const crmButton=document.getElementById('nav-tab-crm');crmButton?.click();
+      const picker=document.getElementById('crm-company');if(picker){picker.value=company.id;picker.dispatchEvent(new Event('change',{bubbles:true}));}
+      document.getElementById('crm-title')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }));
     list.append(item);
   }
   if (!matches.length) list.append(node('p', term ? 'Nenhuma empresa encontrada para essa pesquisa.' : 'Nenhuma empresa cadastrada.', 'empty-state'));

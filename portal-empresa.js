@@ -1,0 +1,17 @@
+import {getApps,initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import {firebaseConfig} from './firebase-config.js';
+import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {getFirestore,doc,getDoc,collection,query,where,onSnapshot} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const app=getApps()[0]||initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
+let subs=[];
+const status=text=>$('portal-message').textContent=text;
+function reset(){for(const off of subs)off();subs=[];$('portal-dashboard').hidden=true;$('portal-login').hidden=false;}
+function render(root,docs,fn){root.replaceChildren();if(!docs.length){const p=document.createElement('p');p.textContent='Nenhum registro disponível.';root.append(p);return;}for(const row of docs){const entry=document.createElement('div');entry.className='entry';const a=document.createElement('strong');a.textContent=fn(row)[0];const b=document.createElement('span');b.textContent=fn(row)[1];entry.append(a,b);root.append(entry);}}
+onAuthStateChanged(auth,async user=>{reset();if(!user)return;try{const membership=await getDoc(doc(db,'portal_empresas',user.uid));if(!membership.exists()||membership.data().active!==true)throw Error('Esta conta não está habilitada para o portal.');const id=membership.data().companyId;if(!/^[a-zA-Z0-9_-]{1,128}$/.test(id))throw Error('Vínculo de empresa inválido');// Não consultar o cadastro empresarial privado: portal tem acesso apenas ao próprio vínculo e às solicitações.
+ $('portal-company-name').textContent=membership.data().tradeName||membership.data().companyName||'Sua empresa';$('portal-login').hidden=true;$('portal-dashboard').hidden=false;
+ subs.push(onSnapshot(query(collection(db,'crm_solicitacoes'),where('companyId','==',id)),snap=>{const records=snap.docs.map(d=>d.data());$('portal-request-count').textContent=String(records.length);render($('portal-requests'),records,r=>[r.role||'Solicitação',`${r.qty||1} profissional(is) · ${r.status||'Aberta'}`]);},e=>status('Não foi possível carregar solicitações: '+(e.code||'Erro de acesso'))));
+ subs.push(onSnapshot(query(collection(db,'vagas'),where('published','==',true)),snap=>{const jobs=snap.docs.map(d=>d.data()).filter(j=>j.companyId===id||String(j.company||'').toLocaleLowerCase('pt-BR')===String(membership.data().companyName||'').toLocaleLowerCase('pt-BR')||Boolean(membership.data().tradeName&&String(j.company||'').toLocaleLowerCase('pt-BR')===String(membership.data().tradeName).toLocaleLowerCase('pt-BR')));$('portal-job-count').textContent=String(jobs.length);render($('portal-jobs'),jobs,r=>[r.title||'Vaga',r.location||'Local não informado']);},e=>status('Não foi possível consultar vagas: '+(e.code||'Erro de acesso'))));
+ status('Acesso autorizado para acompanhamento empresarial.');
+ }catch(err){status(err.message||'Acesso não autorizado');await signOut(auth);}});
+$('portal-login-form').addEventListener('submit',async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button');button.disabled=true;status('Verificando conta…');try{await signInWithEmailAndPassword(auth,$('portal-email').value.trim(),$('portal-password').value);}catch(e){status('Não foi possível entrar. Verifique credenciais ou autorização. ('+(e.code||'Erro')+')');}finally{button.disabled=false;}});
+$('portal-logout').addEventListener('click',()=>signOut(auth));
