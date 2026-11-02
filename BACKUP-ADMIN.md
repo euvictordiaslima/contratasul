@@ -1,12 +1,9 @@
-# Painel administrativo — Backup e restauração
+# Backup e restauração
 
-Abra `admin.html` por HTTPS ou Live Server, entre com a conta autorizada e selecione **Backup e restauração**.
+A opção **Exportar dados das vagas** gera um arquivo JSON somente das oportunidades. O botão **Baixar backup de todas as coleções** exporta vagas, empresas (incluindo informações opcionais de CNPJ), candidaturas, entrevistas, histórico e configurações.
 
-- **Baixar backup**: exporta as vagas (inclusive rascunhos) do Firestore em JSON. O arquivo inclui ID, campos e datas das vagas.
-- **Restaurar vagas**: selecione um JSON gerado pelo painel, confira o resumo e confirme. Os registros com o mesmo ID são atualizados e os ausentes são criados. Registros existentes que não estão no backup não são apagados.
-- A restauração ocorre em lotes de até 200 documentos. Se a conexão falhar, pode haver uma restauração parcial; verifique o status e tente novamente.
-- O arquivo não inclui contas de usuário, senhas, regras do Firebase, configuração do Hosting ou arquivos/imagens.
-- A exportação exige conexão ativa com Firestore e permissão de administrador. Teste uma restauração em um ambiente de testes antes de depender do backup em produção.
-- Guarde os arquivos JSON em local privado: descrições e outros dados das vagas podem ser sensíveis.
+A aba **Recuperação** restaura as coleções suportadas (vagas, empresas, candidaturas, entrevistas e configurações) sem apagar registros que não estejam no arquivo. A operação pode ser parcial se a conexão cair. Guarde o arquivo em lugar seguro e teste a restauração com informações fictícias antes de usá-la em produção.
 
-O site não precisa de novas regras se o `firestore.rules` atual já autoriza o administrador a ler e gravar a coleção `vagas`.
+Usuários e senhas do Authentication, regras, arquivos enviados, configurações de hospedagem e auditoria do servidor **não** são incluídos nem recuperados. Não há backup periódico automático.
+
+**Firestore Rules:** esta versão precisa de novas regras para os dados opcionais das empresas e entrevistas. Veja `INSTALE-ESTA-VERSAO.md`.

@@ -105,44 +105,78 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time);
       allow delete: if isAdmin() && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
     }
+    // Campos extras opcionais para cadastro empresarial. Somente administradores leem estes dados.
+    function optionalText(data, field, maxLen) {
+      return data.get(field, '') is string && data.get(field, '').size() <= maxLen;
+    }
+    function validEmpresa() {
+      return request.resource.data.keys().hasOnly([
+          'name','cnpj','email','phone','city','createdAt','updatedAt',
+          'tradeName','status','openingDate','cnae','legalNature','size',
+          'website','address','district','zip','state','notes'
+        ])
+        && request.resource.data.keys().hasAll(['name','cnpj','email','phone','city','createdAt','updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120
+        && optionalText(request.resource.data, 'cnpj', 14)
+        && (request.resource.data.cnpj == '' || request.resource.data.cnpj.matches('^[0-9]{14}$'))
+        && optionalText(request.resource.data, 'email', 150)
+        && optionalText(request.resource.data, 'phone', 30)
+        && optionalText(request.resource.data, 'city', 100)
+        && optionalText(request.resource.data, 'tradeName', 120)
+        && optionalText(request.resource.data, 'status', 80)
+        && optionalText(request.resource.data, 'openingDate', 10)
+        && (request.resource.data.get('openingDate','') == '' || request.resource.data.openingDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+        && optionalText(request.resource.data, 'cnae', 180)
+        && optionalText(request.resource.data, 'legalNature', 130)
+        && optionalText(request.resource.data, 'size', 60)
+        && optionalText(request.resource.data, 'website', 200)
+        && (request.resource.data.get('website','') == '' || request.resource.data.website.matches('^https?://.+$'))
+        && optionalText(request.resource.data, 'address', 180)
+        && optionalText(request.resource.data, 'district', 90)
+        && optionalText(request.resource.data, 'zip', 8)
+        && (request.resource.data.get('zip','') == '' || request.resource.data.zip.matches('^[0-9]{8}$'))
+        && optionalText(request.resource.data, 'state', 2)
+        && (request.resource.data.get('state','') == '' || request.resource.data.state.matches('^[A-Z]{2}$'))
+        && optionalText(request.resource.data, 'notes', 1200)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
     match /empresas/{id} {
       allow read: if isAdmin();
-      allow create, update: if isAdmin()
-        && request.resource.data.keys().hasOnly(['name','cnpj','email','phone','city','createdAt','updatedAt'])
-        && shortText(request.resource.data.name,100) && request.resource.data.name.size()>0
-        && shortText(request.resource.data.cnpj,14)
-        && shortText(request.resource.data.email,150)
-        && shortText(request.resource.data.phone,25)
-        && shortText(request.resource.data.city,100)
-        && request.resource.data.updatedAt is timestamp
-        && (resource == null || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if isAdmin() && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
+      allow create: if isAdmin() && validEmpresa();
+      allow update: if isAdmin() && validEmpresa()
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin()
+        && request.auth.token.auth_time is int
+        && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
     }
     function validEntrevista() {
-      return request.resource.data.keys().hasOnly(['candidateId','candidateName','when','location','notes','status','createdAt'])
+      return request.resource.data.keys().hasOnly([
+          'candidateId','candidateName','when','location','notes','status','createdAt',
+          'duration','modality','interviewer'
+        ])
+        && request.resource.data.keys().hasAll(['candidateId','candidateName','when','location','notes','status','createdAt'])
         && shortText(request.resource.data.candidateId,128)
         && shortText(request.resource.data.candidateName,100)
         && shortText(request.resource.data.when,40)
         && shortText(request.resource.data.location,300)
         && shortText(request.resource.data.notes,1000)
+        && optionalText(request.resource.data,'duration',3)
+        && request.resource.data.get('duration','') in ['', '15','30','45','60','90','120']
+        && optionalText(request.resource.data,'modality',20)
+        && request.resource.data.get('modality','') in ['', 'Presencial','Online','Telefone']
+        && optionalText(request.resource.data,'interviewer',100)
         && request.resource.data.status in ['Agendada','Concluída','Cancelada']
         && request.resource.data.createdAt is timestamp;
     }
     match /entrevistas/{id} {
       allow read: if isAdmin();
-      allow create: if (isAdmin() && validEntrevista()) || (isAdmin()
-        && request.resource.data.keys().hasOnly(['candidateId','candidateName','when','location','notes','status','createdAt'])
-        && shortText(request.resource.data.candidateId,128)
-        && shortText(request.resource.data.candidateName,100)
-        && shortText(request.resource.data.when,40)
-        && shortText(request.resource.data.location,300)
-        && shortText(request.resource.data.notes,1000)
-        && request.resource.data.status == 'Agendada'
-        && request.resource.data.createdAt is timestamp);
-      allow update: if (isAdmin() && validEntrevista()) || (isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-        && request.resource.data.status in ['Agendada','Concluída','Cancelada']);
-      allow delete: if isAdmin() && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
+      allow create: if isAdmin() && validEntrevista();
+      allow update: if isAdmin() && validEntrevista()
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin()
+        && request.auth.token.auth_time is int
+        && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
     }
     match /configuracoes/{id} {
       allow get: if id == 'site';

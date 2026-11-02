@@ -179,3 +179,86 @@ button:focus-visible{outline:2px solid var(--cs-focus);outline-offset:3px}
 @media(max-width:540px){#status.system-message:not(:empty){bottom:10px;left:13px;right:13px;width:auto}}
 
 .nav-icon{display:block;width:18px;height:18px;flex:0 0 18px;color:#a6bdcb;stroke:currentColor}.admin-sidebar .tab:hover .nav-icon,.admin-sidebar .tab.active .nav-icon{color:#e4bd7d}
+
+/* Contrata Sul · RH 2026 — sistema administrativo refinado */
+:root{
+  --rh-ink:#102a3d;--rh-sub:#577085;--rh-stroke:#dce5ec;--rh-soft:#f5f8fa;
+  --rh-accent:#b98b45;--rh-focus:#347ca7;--rh-white:#fff;
+}
+body{background:#f3f6f8;color:var(--rh-ink);letter-spacing:0}
+#admin-panel{min-width:0}
+.admin-workspace{min-width:0}
+#admin-panel .section-head{padding-bottom:24px;margin-bottom:27px;border-bottom:1px solid var(--rh-stroke)}
+#admin-panel .section-head h2{font-size:clamp(27px,2.5vw,37px);font-weight:760;letter-spacing:-.038em;margin:8px 0 9px;color:#143047}
+#admin-panel .section-head p{font-size:14px;line-height:1.65;color:#647a8a;max-width:750px;margin:0}
+#admin-panel .panel{background:#fff;border:1px solid #dce4eb;border-radius:16px;box-shadow:0 6px 30px rgba(13,38,58,.045)}
+#admin-panel .panel h2{font-size:19px;letter-spacing:-.025em;color:#163349}
+#admin-panel .section-head .eyebrow,.eyebrow{color:#a47431;letter-spacing:.16em}
+#admin-panel .suite-panels{grid-template-columns:minmax(460px,1.1fr) minmax(340px,.9fr);gap:26px;align-items:start}
+#admin-panel .columns{gap:26px}
+#admin-panel .form-actions{padding-top:20px;border-top:1px solid #e8eef2}
+#admin-panel label{font-size:12px;font-weight:700;color:#365165;margin:16px 0 8px}
+#admin-panel input,#admin-panel select,#admin-panel textarea{min-width:0;max-width:100%;font-size:14px;color:#153348;border:1px solid #cad9e3;border-radius:10px;background:#fff}
+#admin-panel input::placeholder,#admin-panel textarea::placeholder{color:#8a9dac}
+#admin-panel textarea{line-height:1.6}
+#admin-panel button:disabled{opacity:.58;cursor:not-allowed}
+#admin-panel .optional{display:inline-block;margin-left:5px;font-size:11px;color:#78909f;font-weight:550}
+#admin-panel .field-note{margin:7px 0 15px;font-size:12px;line-height:1.5;color:#617d91}
+#admin-panel .filter-bar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:18px 0 6px}
+#admin-panel .filter-field{display:block;flex:1 1 210px;margin:0;font-size:12px;min-width:0}
+#admin-panel .filter-field.compact{flex:0 1 185px;min-width:138px}
+#admin-panel .filter-field input,#admin-panel .filter-field select{margin-top:7px;height:46px}
+#admin-panel .filter-count{display:block;color:#6d8190;font-size:12px;font-weight:550;margin:10px 0 18px}
+#admin-panel .compact-filters{margin:2px 0 17px}
+#admin-panel .compact-filters .filter-count{align-self:center;margin:0}
+#admin-panel .form-section{margin:24px 0 30px;padding-top:24px;border-top:1px solid #e5edf3}
+#admin-panel .form-section:first-of-type{border-top:0;margin-top:0;padding-top:0}
+#admin-panel .form-section-title{display:flex;align-items:center;gap:13px;margin-bottom:19px}
+#admin-panel .form-section-title>span{display:grid;place-items:center;flex:0 0 34px;height:34px;background:#f0e6d4;border:1px solid #e1cbac;border-radius:10px;font-weight:800;font-size:12px;color:#876127}
+#admin-panel .form-section-title h3{font-size:17px;letter-spacing:-.02em;color:#163448;margin:0}
+#admin-panel .form-section-title p{font-size:12px;color:#73899a;margin:3px 0 0;line-height:1.4}
+#admin-panel .inline-field{display:flex;align-items:center;gap:10px}
+#admin-panel .inline-field input{flex:1 1 auto;margin:0}
+#admin-panel .lookup-button{flex:0 0 auto;white-space:nowrap;min-height:46px;border:1px solid #d0dde7;background:#edf3f7;color:#21465e}
+#admin-panel #tab-companies .panel:nth-child(2),#admin-panel #tab-interviews .panel:nth-child(2){min-height:360px}
+#admin-panel #companies-list,#admin-panel #interviews-list{max-height:calc(100vh - 240px);overflow-y:auto;padding-right:5px;scrollbar-color:#c6d4dd transparent;scrollbar-width:thin}
+#admin-panel .suite-item{background:#fff;border:1px solid #e0e8ed;border-radius:12px;padding:19px;margin:11px 0;box-shadow:none}
+#admin-panel .suite-item:hover{border-color:#b8cbd8;background:#fcfdfe}
+#admin-panel .suite-item h3{font-size:15px;letter-spacing:-.01em;color:#1e425b;margin-bottom:5px}
+#admin-panel .suite-item p{line-height:1.55;color:#5c7486;font-size:12px}
+#admin-panel .suite-item .item-meta{color:#45677d}
+#admin-panel .suite-item button{font-size:12px;padding:10px 14px;margin-top:10px}
+#admin-panel .interview-badge{display:inline-flex;align-items:center;border-radius:100px;padding:5px 11px;font-size:11px;font-weight:760;color:#245473;background:#e4f0fa;margin-top:6px}
+#admin-panel .status-concluida{color:#236647;background:#e3f3e9}
+#admin-panel .status-cancelada{color:#884550;background:#f9e9eb}
+#admin-panel .outline-danger{background:#fff!important;border:1px solid #dbb4ba!important;color:#a02f41!important}
+#admin-panel .candidate-picker{position:relative;z-index:12}
+#admin-panel .candidate-picker input{margin-top:8px}
+#admin-panel .candidate-results{position:absolute;top:calc(100% + 5px);left:0;right:0;z-index:15;max-height:290px;overflow:auto;background:white;border:1px solid #cad8e4;border-radius:11px;box-shadow:0 15px 35px #153f582c;padding:6px}
+#admin-panel .candidate-results .candidate-option{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px;border-radius:8px;border:0;color:#213f55;background:#fff;padding:11px 12px;margin:0;text-align:left;min-height:auto;font-weight:650}
+#admin-panel .candidate-option strong{font-size:13px}
+#admin-panel .candidate-option small{color:#70899b;font-weight:480;font-size:11px;white-space:normal}
+#admin-panel .candidate-option:hover,#admin-panel .candidate-option.is-active{background:#eaf2f7;color:#153b55}
+#admin-panel .candidate-results .empty-state{padding:13px}
+#admin-panel .suite-stage{background:#eff4f7;border-color:#dbe6ed}
+#admin-panel .suite-kanban{gap:16px}
+#admin-panel .suite-stage>h3{font-size:13px;color:#28485c}
+#admin-panel .suite-stage .suite-item{padding:14px}
+#admin-panel .suite-stage .suite-item select{padding:8px;min-height:41px}
+#admin-panel .job-list .vacancy{padding:22px 0;border-color:#e6ecf0}
+#admin-panel .job-list .vacancy h3{font-size:16px}
+#admin-panel #tab-companies .actions,#admin-panel #tab-interviews .actions{margin-top:14px}
+#admin-panel .suite-metric strong{font-size:clamp(26px,2.7vw,35px)}
+#admin-panel .workspace-toolbar{padding:17px 21px;background:white;border:1px solid #e1e8ee;border-radius:12px;margin-bottom:28px}
+#admin-panel .admin-sidebar{border-radius:15px}
+#admin-panel .admin-sidebar .tab{border-radius:9px;min-height:43px}
+#admin-panel button:not(:disabled){transition:background .2s,border-color .2s,transform .15s}
+#admin-panel button:active:not(:disabled){transform:translateY(1px)}
+@media(max-width:1300px){#admin-panel .suite-panels{grid-template-columns:1fr 1fr}#admin-panel .columns{grid-template-columns:1fr 1fr}}
+@media(max-width:1100px){#admin-panel .suite-panels,#admin-panel .columns{grid-template-columns:1fr}#admin-panel #companies-list,#admin-panel #interviews-list{max-height:none}}
+@media(max-width:820px){#admin-panel .workspace-toolbar{margin-bottom:20px}#admin-panel .suite-panels{display:grid;grid-template-columns:1fr}#admin-panel .filter-bar{margin-top:10px}}
+@media(max-width:540px){#admin-panel .section-head h2{font-size:27px}#admin-panel .panel{padding:20px 16px}#admin-panel .inline-field{flex-wrap:wrap}#admin-panel .inline-field input,#admin-panel .lookup-button{width:100%;flex-basis:100%}#admin-panel .two{grid-template-columns:1fr}#admin-panel .filter-field,#admin-panel .filter-field.compact{flex-basis:100%}#admin-panel .form-section-title{gap:10px}#admin-panel .suite-kanban{grid-template-columns:repeat(5,minmax(232px,1fr))}}
+@media(prefers-reduced-motion:reduce){#admin-panel *{scroll-behavior:auto!important;transition:none!important}}
+
+#tab-history #audit-list{max-height:72vh;overflow:auto;scrollbar-width:thin;padding-right:6px}
+#tab-history .suite-item{margin-bottom:10px}
