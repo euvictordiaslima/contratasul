@@ -96,6 +96,7 @@ function renderCandidates() {
         finally { stageSelect.disabled = false; }
       });
       item.append(stageSelect);
+      item.append(addButton('Excluir candidatura',()=>document.dispatchEvent(new CustomEvent('admin-request-delete',{detail:{collection:'candidaturas',id:c.id,label:c.name}})),'outline-danger'));
       if (c.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)) { const contact = node('a', 'Enviar e-mail', 'suite-link'); contact.href = `mailto:${encodeURIComponent(c.email)}`; item.append(contact); }
       col.append(item);
     }
@@ -191,6 +192,7 @@ function renderCompanies() {
       companyForm.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
       $('company-name').focus({ preventScroll: true });
     }));
+    item.append(addButton('Excluir empresa', () => document.dispatchEvent(new CustomEvent('admin-request-delete',{detail:{collection:'empresas',id:company.id,label:company.tradeName||company.name}})), 'outline-danger'));
     item.append(addButton('Abrir central da empresa →', () => {
       const crmButton=document.getElementById('nav-tab-crm');crmButton?.click();
       const picker=document.getElementById('crm-company');if(picker){picker.value=company.id;picker.dispatchEvent(new Event('change',{bubbles:true}));}
@@ -315,7 +317,7 @@ function renderInterviews() {
     if (i.status !== 'Concluída') actions.append(addButton('Concluir', event => updateInterviewStatus(i, 'Concluída', event.currentTarget)));
     if (i.status !== 'Cancelada') actions.append(addButton('Cancelar', event => updateInterviewStatus(i, 'Cancelada', event.currentTarget), 'outline-danger'));
     if (i.status !== 'Agendada') actions.append(addButton('Reabrir', event => updateInterviewStatus(i, 'Agendada', event.currentTarget)));
-    item.append(actions); root.append(item);
+    actions.append(addButton('Excluir',()=>document.dispatchEvent(new CustomEvent('admin-request-delete',{detail:{collection:'entrevistas',id:i.id,label:i.candidateName}})),'outline-danger'));item.append(actions); root.append(item);
   }
   if (!filtered.length) root.append(node('p', term ? 'Nenhuma entrevista corresponde aos filtros.' : 'Nenhuma entrevista agendada.', 'empty-state'));
   if (filtered.length > 120) root.append(node('p', 'Exibindo 120 entrevistas. Refine a pesquisa para localizar outras.', 'filter-count'));
@@ -349,7 +351,7 @@ const exportButton = addButton('Baixar backup de todas as coleções (.json)', a
   if (!authorized) return;
   exportButton.disabled = true;
   try {
-    const names = ['vagas', 'empresas', 'candidaturas', 'entrevistas', 'historico', 'configuracoes'];
+    const names = ['vagas', 'empresas', 'candidaturas', 'entrevistas', 'historico', 'configuracoes', 'midia_site'];
     const data = {};
     for (const name of names) {
       const snapshot = await getDocsFromServer(collection(db, name));

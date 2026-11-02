@@ -54,6 +54,7 @@ function renderList(type){const list=$(`crm-${type}-list`);if(!list)return;list.
    const actions=text('div','','crm-entry-actions');for(const option of options){if(option===row.status)continue;const btn=text('button',option,'secondary');btn.type='button';btn.addEventListener('click',()=>changeStatus(type,row,option,btn));actions.append(btn);}entry.append(actions);
   }
   if(type==='portal'){const btn=text('button',row.active?'Suspender acesso':'Reativar acesso','secondary');btn.type='button';btn.addEventListener('click',()=>portalToggle(row,btn));entry.append(btn);}
+  const del=text('button','Excluir','danger');del.type='button';del.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('admin-request-delete',{detail:{collection:coll[type],id:row.id,label:main}})));entry.append(del);
   list.append(entry);
  }
  if(rows.length>80)list.append(text('p','Exibindo 80 registros. Refine a pesquisa.','crm-hint'));

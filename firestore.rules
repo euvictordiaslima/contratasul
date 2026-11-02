@@ -6,6 +6,45 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
     }
+    // Exclusões administrativas exigem login recente (até 5 min).
+    function recentAdmin() {
+      return isAdmin() && request.auth.token.auth_time is int
+        && request.auth.token.auth_time * 1000 > request.time.toMillis() - 300000;
+    }
+    function validMedia() {
+      return request.resource.data.keys().hasOnly([
+        'type','title','description','imageUrl','linkUrl','order','active','createdAt','updatedAt'
+      ])
+      && request.resource.data.keys().hasAll([
+        'type','title','description','imageUrl','linkUrl','order','active','createdAt','updatedAt'
+      ])
+      && request.resource.data.type in ['banner','material']
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 100
+      && request.resource.data.description is string && request.resource.data.description.size() <= 240
+      && request.resource.data.imageUrl is string
+      && request.resource.data.imageUrl.size() <= 1200
+      && request.resource.data.imageUrl.matches('^https://.+')
+      && request.resource.data.linkUrl is string
+      && request.resource.data.linkUrl.size() <= 1200
+      && (request.resource.data.linkUrl == '' || request.resource.data.linkUrl.matches('^https://.+'))
+      && request.resource.data.order is int
+      && request.resource.data.order >= 0 && request.resource.data.order <= 999
+      && request.resource.data.active is bool
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+    match /midia_site/{mediaId} {
+      // Visitantes só podem listar documentos ativos: query where('active','==',true).
+      allow get, list: if isAdmin() || resource.data.active == true;
+      allow create: if isAdmin() && validMedia()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin() && validMedia()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if recentAdmin();
+    }
     function validVaga() {
       return request.resource.data.keys().hasOnly([
         'title','company','location','mode','contract','salary',
@@ -240,7 +279,7 @@ service cloud.firestore {
         && request.resource.data.tradeName.size() <= 120
         && request.resource.data.active is bool
         && request.resource.data.updatedAt == request.time;
-      allow delete: if isAdmin();
+      allow delete: if recentAdmin();
     }
     // CRM: todos os dados empresariais e pessoais são privados ao administrador.
 
@@ -285,37 +324,38 @@ service cloud.firestore {
         && request.resource.data.owner is string
         && request.resource.data.owner.size() <= 100
         && request.resource.data.updatedAt == request.time;
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_vinculos/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && crmValid('vinculos') && request.resource.data.createdAt == request.time;
       allow update: if isAdmin() && crmValid('vinculos') && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.companyId == resource.data.companyId;
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_solicitacoes/{id} {
       // No portal, a consulta deve filtrar companyId == empresa autorizada.
       allow read: if isAdmin() || portalMember(resource.data.companyId);
       allow create: if isAdmin() && crmValid('solicitacoes') && request.resource.data.createdAt == request.time;
       allow update: if isAdmin() && crmValid('solicitacoes') && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.companyId == resource.data.companyId;
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_contatos/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && crmValid('contatos') && request.resource.data.createdAt == request.time;
       allow update: if isAdmin() && crmValid('contatos') && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.companyId == resource.data.companyId;
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_tarefas/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && crmValid('tarefas') && request.resource.data.createdAt == request.time;
       allow update: if isAdmin() && crmValid('tarefas') && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.companyId == resource.data.companyId;
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_atividades/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && crmValid('atividades') && request.resource.data.createdAt == request.time;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if recentAdmin();
     }
     // Metadados e atividades novos do CRM. Arquivos não são armazenados aqui.
     function crmExtra() {
@@ -353,7 +393,7 @@ service cloud.firestore {
         && request.resource.data.companyId == resource.data.companyId
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.status in ['Rascunho','Enviada','Em negociação','Aprovada','Recusada'];
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_financeiro/{id} {
       allow read: if isAdmin();
@@ -364,7 +404,7 @@ service cloud.firestore {
         && request.resource.data.companyId == resource.data.companyId
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.status in ['Pendente','Pago','Cancelado'];
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_documentos/{id} {
       allow read: if isAdmin();
@@ -374,7 +414,7 @@ service cloud.firestore {
       allow update: if isAdmin() && crmExtra()
         && request.resource.data.companyId == resource.data.companyId
         && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /crm_avaliacoes/{id} {
       allow read: if isAdmin();
@@ -386,7 +426,7 @@ service cloud.firestore {
       allow update: if isAdmin() && crmExtra()
         && request.resource.data.companyId == resource.data.companyId
         && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if false;
+      allow delete: if recentAdmin();
     }
     match /{document=**} {
       allow read, write: if false;

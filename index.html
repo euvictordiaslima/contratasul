@@ -12,7 +12,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="styles.css" rel="stylesheet"/>
-</head>
+<link href="manifest.webmanifest" rel="manifest"/><link href="apple-touch-icon.png" rel="apple-touch-icon"/><meta content="yes" name="apple-mobile-web-app-capable"/><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/><meta content="Contrata Sul" name="application-name"/><link href="install-app.css?v=20261102" rel="stylesheet"/></head>
 <body>
 <div class="announcement">
 <span class="announcement-dot"></span>
@@ -35,7 +35,7 @@
 <a href="#disc">Teste DISC</a>
 <a href="#sobre">Sobre nós</a>
 <a href="#duvidas">Dúvidas</a>
-<button aria-label="Ativar modo escuro" class="theme-toggle" id="theme-toggle" title="Alternar tema" type="button">☾</button><a class="nav-cta" href="#contato">Fale conosco <span>↗</span></a>
+<button aria-label="Instalar aplicativo Contrata Sul" id="install-app" type="button">↓ Instalar</button><button aria-label="Ativar modo escuro" class="theme-toggle" id="theme-toggle" title="Alternar tema" type="button">☾</button><a class="nav-cta" href="#contato">Fale conosco <span>↗</span></a>
 </nav>
 </div>
 </header>
@@ -215,14 +215,10 @@
 </div>
 </section>
 <section class="showcase" id="destaques"><div class="container"><div class="showcase-head"><div><span class="eyebrow dark-eyebrow">DESTAQUES CONTRATA SUL</span><h2>Explore novas possibilidades.</h2></div><div class="showcase-actions"><button aria-label="Anterior" id="show-prev">←</button><button aria-label="Próximo" id="show-next">→</button><button aria-pressed="false" id="show-pause">Pausar ❚❚</button></div></div><div aria-label="Destaques" aria-roledescription="carrossel" class="show-window" id="show-window"><div class="show-track" id="show-track"><article class="show-slide"><small>01 / EMPRESAS</small><h3>Encontre talentos para sua equipe.</h3><p>Recrutamento e seleção para cada necessidade.</p><a href="#empresas">Conhecer soluções ↗</a></article><article class="show-slide"><small>02 / OPORTUNIDADES</small><h3>Seu próximo passo profissional.</h3><p>Veja oportunidades cadastradas e converse com nossa equipe.</p><a href="#vagas">Ver vagas ↗</a></article><article class="show-slide"><small>03 / DESENVOLVIMENTO</small><h3>Conheça melhor seu perfil.</h3><p>Explore o teste comportamental e seus resultados.</p><a href="#disc">Explorar teste ↗</a></article><article class="show-slide"><small>04 / CONEXÕES</small><h3>Vamos conversar sobre o futuro?</h3><p>Entre em contato com a Contrata Sul.</p><a href="#contato">Fale conosco ↗</a></article></div></div><div class="show-dots" id="show-dots"></div></div></section>
-<section class="section portfolio-section" id="materiais">
+<section aria-labelledby="public-ad-heading" class="public-ad-section" id="publicidade"><div class="container"><div class="public-ad-heading"><div><span class="eyebrow dark-eyebrow">NOVIDADES E COMUNICADOS</span><h2 id="public-ad-heading">Propagandas e destaques</h2><p>Comunicados e campanhas publicados pela Contrata Sul.</p></div><div class="media-carousel-buttons"><button aria-label="Propaganda anterior" id="ad-prev" type="button">←</button><button aria-label="Próxima propaganda" id="ad-next" type="button">→</button><button aria-pressed="false" id="ad-pause" type="button">Pausar ❚❚</button></div></div><div aria-label="Propagandas" aria-roledescription="carrossel" class="media-ad-window" id="ad-window"><div class="media-ad-track" id="ad-track"><div class="media-empty">Nenhuma propaganda publicada no momento.</div></div></div><div aria-label="Escolher propaganda" class="carousel-dots" id="ad-dots"></div></div></section><section class="section portfolio-section" id="materiais">
 <div class="container">
 <div class="portfolio-heading"><div><span class="eyebrow dark-eyebrow">IDENTIDADE CONTRATA SUL</span><h2>Uma marca. <span>Várias conexões.</span></h2></div><p>Materiais institucionais da Contrata Sul para apresentar nossa proposta, nossos serviços e a conexão de talentos.</p></div>
-<div class="carousel-controls"><span>Materiais da Contrata Sul <small class="carousel-index" id="carousel-index">01 / 03</small></span><div><button aria-label="Material anterior" class="carousel-arrow" id="carousel-prev" type="button">←</button><button aria-label="Próximo material" class="carousel-arrow" id="carousel-next" type="button">→</button><button aria-label="Pausar reprodução automática" class="carousel-pause" id="carousel-pause" type="button">Pausar ❚❚</button></div></div><div aria-label="Carrossel de materiais institucionais" aria-roledescription="carrossel" class="carousel-window" id="materials-carousel"><div class="portfolio-grid carousel-track">
-<a class="portfolio-item" href="assets/cartao-contrata-sul.png" rel="noopener" target="_blank"><img alt="Cartão institucional Contrata Sul, com contatos de We berton Mendonça" src="assets/cartao-contrata-sul.png"/><span><strong>Apresentação institucional</strong><small>Contato e serviços</small><b>↗</b></span></a>
-<a class="portfolio-item" href="assets/proposta-comercial.png" rel="noopener" target="_blank"><img alt="Arte da proposta comercial Contrata Sul" src="assets/proposta-comercial.png"/><span><strong>Proposta comercial</strong><small>Parcerias com empresas</small><b>↗</b></span></a>
-<a class="portfolio-item" href="assets/conexao-de-talentos.png" rel="noopener" target="_blank"><img alt="Arte Conexão de Talentos da Contrata Sul" src="assets/conexao-de-talentos.png"/><span><strong>Conexão de talentos</strong><small>Desenvolvimento profissional</small><b>↗</b></span></a>
-</div></div><div aria-label="Selecionar material" class="carousel-dots" id="carousel-dots"></div><div aria-hidden="true" class="carousel-progress"><span id="carousel-progress-fill"></span></div>
+<div class="carousel-controls"><span>Materiais da Contrata Sul <small class="carousel-index" id="carousel-index">00 / 00</small></span><div><button aria-label="Material anterior" class="carousel-arrow" id="carousel-prev" type="button">←</button><button aria-label="Próximo material" class="carousel-arrow" id="carousel-next" type="button">→</button><button aria-label="Pausar reprodução automática" class="carousel-pause" id="carousel-pause" type="button">Pausar ❚❚</button></div></div><div aria-label="Carrossel de materiais institucionais" aria-roledescription="carrossel" class="carousel-window" id="materials-carousel"><div class="portfolio-grid carousel-track" id="materials-track"><p class="media-empty">Os materiais da Contrata Sul aparecerão aqui assim que forem publicados pela equipe.</p></div></div><div aria-label="Selecionar material" class="carousel-dots" id="carousel-dots"></div><div aria-hidden="true" class="carousel-progress"><span id="carousel-progress-fill"></span></div>
 </div>
 </section>
 <section class="section extras-section" id="duvidas">
@@ -275,7 +271,7 @@
 <div class="container footer-bottom"><span>© <span id="year"></span> Contrata Sul. Todos os direitos reservados.</span><span>Xanxerê · Santa Catarina</span><span>Feito com propósito <b>✦</b></span></div>
 </footer>
 <a aria-label="Conversar com a Contrata Sul pelo WhatsApp" class="whatsapp-float" href="https://wa.me/5549988354130" rel="noopener" target="_blank"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.2 1.6 6L0 24l6.4-1.7a12 12 0 0 0 5.7 1.5h.1C18.7 23.8 24 18.5 24 12c0-3.2-1.2-6.2-3.5-8.5ZM12.1 21.7a9.8 9.8 0 0 1-5-1.4l-.4-.2-3.8 1 1-3.7-.3-.4a9.8 9.8 0 1 1 8.5 4.7Zm5.4-7.3c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.5-1.7-1.7-2-.2-.3 0-.4.1-.6l.5-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.7-1.6-1-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3Z"></path></svg></a>
-<script src="script.js"></script>
+<script src="script.js?v=20261102r4"></script>
 <script src="public-vagas.js" type="module"></script>
-</body>
+<div aria-live="polite" hidden="" id="connectivity-status" role="status"></div><dialog aria-labelledby="install-help-title" id="install-help"><h2 id="install-help-title">Instalar Contrata Sul</h2><p data-install-instructions="">Abra o menu do navegador e escolha instalar aplicativo.</p><button data-close-install="" type="button">Entendi</button></dialog><script defer="" src="install-app.js?v=20261102"></script><script src="media-public.js?v=20261102r4" type="module"></script></body>
 </html>

@@ -1,0 +1,22 @@
+/* Botão discreto e ajuda de instalação para as versões do aplicativo */
+#install-app{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;
+ border:1px solid rgba(206,165,99,.5);border-radius:9px;background:rgba(203,165,94,.09);
+ color:#f2d7a0;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
+ font-family:inherit;letter-spacing:0;box-shadow:none}
+#install-app:hover{background:rgba(203,165,94,.17)}
+#install-app:focus-visible{outline:3px solid #dfb96e;outline-offset:3px}
+#install-app[hidden]{display:none!important}
+#connectivity-status{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);max-width:min(94vw,630px);
+ padding:11px 18px;border-radius:12px;background:#fff1dc;color:#5d3718;border:1px solid #e1b97f;
+ font-size:13px;font-weight:700;box-shadow:0 8px 26px #172e4030;z-index:900;text-align:center}
+#connectivity-status[hidden]{display:none!important}
+#install-help{border:1px solid #d4e0ea;border-radius:18px;padding:24px;max-width:min(440px,calc(100vw - 28px));
+ background:#fff;color:#18364c;box-shadow:0 20px 90px #041a2b66;font-family:system-ui,sans-serif}
+#install-help::backdrop{background:#0615239c}
+#install-help h2{color:#13334b;margin:0 0 12px;font-size:23px}
+#install-help p{font-size:14px;line-height:1.65;color:#375266}
+#install-help button{background:#173a52;color:#fff;border:0;border-radius:9px;padding:11px 20px;cursor:pointer}
+#install-help button:focus-visible{outline:3px solid #dfb96e;outline-offset:2px}
+@media(max-width:880px){#install-app{font-size:11px;padding:9px}}
+
+@media (min-width: 801px){#install-app{display:none!important}}

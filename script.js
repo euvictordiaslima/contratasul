@@ -1,34 +1,6 @@
 (() => {
 
-  // Carrossel automático: pausa em foco, hover e aba inativa.
-  const carousel = document.getElementById('materials-carousel');
-  if (carousel) {
-    const track = carousel.querySelector('.carousel-track');
-    const slides = [...track.querySelectorAll('.portfolio-item')];
-    const dots = document.getElementById('carousel-dots');
-    const pause = document.getElementById('carousel-pause');
-    let index = 0, stopped = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let hover = false, focus = false, startX = null;
-    const show = (n) => {
-      index = (n + slides.length) % slides.length;
-      const label = document.getElementById("carousel-index"); if(label) label.textContent = `${String(index+1).padStart(2,"0")} / ${String(slides.length).padStart(2,"0")}`;
-      const fill = document.getElementById("carousel-progress-fill"); if(fill) fill.style.transform = `translateX(${index*100}%)`;
-      track.style.transform = `translateX(-${index * 100}%)`;
-      slides.forEach((slide,i) => { slide.tabIndex = i === index ? 0 : -1; slide.setAttribute('aria-hidden', String(i !== index)); });
-      [...dots.children].forEach((dot,i) => dot.setAttribute('aria-current', String(i === index)));
-    };
-    slides.forEach((_,i) => { const b=document.createElement('button'); b.type='button'; b.setAttribute('aria-label',`Mostrar material ${i+1}`); b.addEventListener('click',()=>show(i)); dots.appendChild(b); });
-    document.getElementById('carousel-prev').addEventListener('click',()=>show(index-1));
-    document.getElementById('carousel-next').addEventListener('click',()=>show(index+1));
-    pause.addEventListener('click',()=>{ stopped=!stopped; pause.textContent=stopped?'Reproduzir ▶':'Pausar ❚❚'; pause.setAttribute('aria-label',stopped?'Reproduzir carrossel':'Pausar carrossel'); });
-    if(stopped){pause.textContent='Reproduzir ▶';pause.setAttribute('aria-label','Reproduzir carrossel');}
-    carousel.addEventListener('mouseenter',()=>hover=true); carousel.addEventListener('mouseleave',()=>hover=false);
-    carousel.addEventListener('focusin',()=>focus=true); carousel.addEventListener('focusout',e=>{if(!carousel.contains(e.relatedTarget))focus=false;});
-    carousel.addEventListener('touchstart',e=>{startX=e.changedTouches[0].screenX;},{passive:true});
-    carousel.addEventListener('touchend',e=>{if(startX!==null){const delta=e.changedTouches[0].screenX-startX;if(Math.abs(delta)>45)show(index+(delta<0?1:-1));startX=null;}},{passive:true});
-    window.setInterval(()=>{if(!stopped&&!hover&&!focus&&!document.hidden)show(index+1);},3000);
-    show(0);
-  }
+  // Carrosséis por URL são gerenciados por media-public.js.
 
   const steps = {
     empresa: [
