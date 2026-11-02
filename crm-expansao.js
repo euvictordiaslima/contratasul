@@ -13,6 +13,7 @@ const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLo
 const text=(tag,v='',cls='')=>{const e=document.createElement(tag);e.textContent=String(v??'');if(cls)e.className=cls;return e;};
 const status=t=>{const e=$('crm-feedback-message');if(e)e.textContent=t;};
 const inCompany=key=>state[key].filter(row=>row.companyId===selected);
+const filteredOverview=(id,items)=>{const term=norm($(id)?.value);return term?items.filter(row=>norm(Object.values(row).map(x=>typeof x==='string'?x:'').join(' ')).includes(term)):items;};
 const company=()=>state.companies.find(c=>c.id===selected);
 const when=v=>{try{const d=v?.toDate?.()||new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('pt-BR'):'—';}catch{return '—';}};
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
@@ -28,17 +29,17 @@ document.addEventListener('crm-company-change',e=>{selected=e.detail.companyId;r
 function jobs(){const c=company();if(!c)return[];return state.jobs.filter(j=>j.companyId===c.id||(j.cnpj&&c.cnpj&&j.cnpj===c.cnpj)||norm(j.company)===norm(c.name)||Boolean(c.tradeName&&norm(j.company)===norm(c.tradeName)));}
 function candidates(){const ids=new Set(jobs().map(j=>j.id));return state.candidates.filter(c=>ids.has(c.jobId));}
 function interviews(){const ids=new Set(candidates().map(c=>c.id));return state.interviews.filter(i=>ids.has(i.candidateId));}
-function miniList(root,items,format){root.replaceChildren();if(!items.length){root.append(text('p','Nenhum registro vinculado.','crm-hint'));return;}for(const item of items.slice(0,7)){const row=text('div','','crm-overview-line');row.append(text('strong',format(item)[0]),text('span',format(item)[1]));root.append(row);}if(items.length>7)root.append(text('p',`Mais ${items.length-7} registro(s). Use a pesquisa nos módulos correspondentes.`,'crm-hint'));}
+function miniList(root,items,format){root.replaceChildren();if(!items.length){root.append(text('p','Nenhum registro vinculado.','crm-hint'));return;}for(const item of items.slice(0,12)){const row=text('div','','crm-overview-line');row.append(text('strong',format(item)[0]),text('span',format(item)[1]));root.append(row);}if(items.length>12)root.append(text('p',`Mais ${items.length-12} registro(s). Use a pesquisa nos módulos correspondentes.`,'crm-hint'));}
 function renderOverview(){if(!company())return;
- miniList($('crm-overview-jobs'),jobs(),j=>[j.title,j.published?'Publicada':'Rascunho']);
- miniList($('crm-overview-candidates'),candidates(),c=>[c.name,c.stage||'Recebido']);
- miniList($('crm-overview-interviews'),interviews(),i=>[i.candidateName,`${when(i.when)} · ${i.status}`]);
+ miniList($('crm-overview-jobs'),filteredOverview('crm-overview-jobs-search',jobs()),j=>[j.title,j.published?'Publicada':'Rascunho']);
+ miniList($('crm-overview-candidates'),filteredOverview('crm-overview-candidates-search',candidates()),c=>[c.name,c.stage||'Recebido']);
+ miniList($('crm-overview-interviews'),filteredOverview('crm-overview-interviews-search',interviews()),i=>[i.candidateName,`${when(i.when)} · ${i.status}`]);
  const openTasks=inCompany('tasks').filter(x=>!x.done),openReq=inCompany('requests').filter(r=>r.status!=='Concluída');
- miniList($('crm-overview-next'),[...openTasks.map(t=>({name:t.title,due:t.due||''})),...openReq.map(r=>({name:'Solicitação: '+r.role,due:r.due||''}))].sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')),v=>[v.name,v.due?when(v.due+'T12:00:00'):'Sem prazo']);
+ miniList($('crm-overview-next'),filteredOverview('crm-overview-next-search',[...openTasks.map(t=>({name:t.title,due:t.due||''})),...openReq.map(r=>({name:'Solicitação: '+r.role,due:r.due||''}))].sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'))),v=>[v.name,v.due?when(v.due+'T12:00:00'):'Sem prazo']);
 }
 function safeRow(title,meta,detail){const article=text('article','','crm-entry');const top=text('div','','crm-entry-top'),left=text('div','','crm-entry-content');left.append(text('strong',title),text('p',meta,'crm-entry-meta'));if(detail)left.append(text('small',detail));top.append(left);article.append(top);return article;}
 function renderList(type){const list=$(`crm-${type}-list`);if(!list)return;list.replaceChildren();let rows=type==='portal'?state.portal.filter(x=>x.companyId===selected):inCompany(type);
- const search=$(`crm-${type}-search`);if(search)rows=rows.filter(r=>norm(JSON.stringify([r.title,r.status,r.description,r.details])).includes(norm(search.value)));
+ const search=$(`crm-${type}-search`);if(search)rows=rows.filter(r=>norm([r.title,r.status,r.description,r.details,r.due,r.category,r.reference,r.author,r.text,r.rating,r.amount,r.id].join(' ')).includes(norm(search.value)));
  rows=[...rows].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
  for(const row of rows.slice(0,80)){
   const main=type==='portal'?`Conta vinculada: ${row.id}`:row.title||row.author||'Registro sem título';
@@ -58,7 +59,7 @@ function renderList(type){const list=$(`crm-${type}-list`);if(!list)return;list.
  if(rows.length>80)list.append(text('p','Exibindo 80 registros. Refine a pesquisa.','crm-hint'));
  if(!rows.length)list.append(text('p','Nenhum registro para esta empresa.','crm-hint'));
 }
-function renderPipeline(){const board=$('crm-pipeline-board');board.replaceChildren();if(!company())return;for(const stage of ['Recebido','Em análise','Entrevista','Aprovado','Encerrado']){const col=text('section','','crm-pipeline-column');const people=candidates().filter(c=>c.stage===stage);col.append(text('h4',`${stage} · ${people.length}`));for(const p of people.slice(0,25)){const item=text('div','','crm-pipeline-entry');item.append(text('strong',p.name),text('p',p.jobTitle||'Cargo não informado'));col.append(item);}board.append(col);}}
+function renderPipeline(){const board=$('crm-pipeline-board');board.replaceChildren();if(!company())return;const term=norm($('crm-pipeline-search')?.value);for(const stage of ['Recebido','Em análise','Entrevista','Aprovado','Encerrado']){const col=text('section','','crm-pipeline-column');const people=candidates().filter(c=>c.stage===stage&&(!term||norm([c.name,c.phone,c.email,c.jobTitle,c.stage].join(' ')).includes(term)));col.append(text('h4',`${stage} · ${people.length}`));for(const p of people.slice(0,25)){const item=text('div','','crm-pipeline-entry');item.append(text('strong',p.name),text('p',p.jobTitle||'Cargo não informado'));col.append(item);}board.append(col);}}
 function buildReport(){const c=company();if(!c)return;const target=$('crm-report-body');target.replaceChildren();const title=text('h3',c.tradeName||c.name);target.append(title,text('p',[c.name,c.city,c.state,c.cnpj?'CNPJ: '+c.cnpj:''].filter(Boolean).join(' · ')),text('small','Relatório gerado em '+new Date().toLocaleString('pt-BR')));
  const hiring=inCompany('people'),records=[['Vagas',jobs().length],['Vagas publicadas',jobs().filter(j=>j.published).length],['Candidaturas',candidates().length],['Entrevistas',interviews().length],['Profissionais contratados',hiring.filter(v=>v.status==='Contratado').length],['Em análise/entrevista',hiring.filter(v=>['Em análise','Entrevista','Aprovado'].includes(v.status)).length],['Solicitações abertas',inCompany('requests').filter(r=>r.status!=='Concluída').length],['Tarefas em aberto',inCompany('tasks').filter(t=>!t.done).length],['Propostas',inCompany('offers').length],['Pagamentos registrados',inCompany('finance').filter(f=>f.status==='Pago').length]];
  const table=text('table','','crm-report-table'),tbody=text('tbody');for(const [key,n] of records){const tr=text('tr');tr.append(text('th',key),text('td',String(n)));tbody.append(tr);}table.append(tbody);target.append(table);
@@ -109,3 +110,8 @@ $('crm-full-restore').addEventListener('click',async()=>{if(!admin||!pendingBack
  batch.set(ref,entry);affected++;
  }if(affected){await batch.commit();written+=affected;$('crm-backup-preview').textContent=`Restauração: ${written} registro(s) gravados de até ${count}.`;}
  }}status(`Restauração concluída: ${written} registros gravados. Verifique os dados.`);pendingBackup=null;$('crm-full-import').value='';}catch(err){status(`Restauração interrompida após ${written} registros: ${fetchError(err)}. Pode ser necessário conferir dados parciais.`);}finally{button.disabled=!pendingBackup;}});
+
+// Pesquisar qualquer lista da central, inclusive resumo, funil e portal.
+for(const type of ['offers','finance','documents','feedback','portal'])$( `crm-${type}-search`)?.addEventListener('input',()=>renderList(type));
+for(const type of ['jobs','candidates','interviews','next'])$(`crm-overview-${type}-search`)?.addEventListener('input',renderOverview);
+$('crm-pipeline-search')?.addEventListener('input',renderPipeline);

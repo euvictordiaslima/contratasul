@@ -64,22 +64,29 @@ function renderDashboard() {
     row.append(node('span', stage), bar, node('strong', String(count))); funnel.append(row);
   }
   const recent = $('suite-recent'); recent.replaceChildren();
-  for (const a of [...state.audit].sort((a, b) => (b.at?.seconds || 0) - (a.at?.seconds || 0)).slice(0, 6)) recent.append(card(a.action, `${a.detail} · ${dateFormat(a.at)}`));
-  if (!state.audit.length) recent.append(node('p', 'Nenhuma atividade registrada.'));
+  const recentTerm=normalize($('overview-activity-search')?.value||'');
+  const recentRows=[...state.audit].filter(a=>normalize([a.action,a.detail,a.email].join(' ')).includes(recentTerm)).sort((a,b)=>(b.at?.seconds||0)-(a.at?.seconds||0));
+  for (const a of recentRows.slice(0, 30)) recent.append(card(a.action, `${a.detail} · ${dateFormat(a.at)}`));
+  if (!recentRows.length) recent.append(node('p', recentTerm?'Nenhuma atividade encontrada.':'Nenhuma atividade registrada.'));
+  if (recentRows.length>30) recent.append(node('p','Exibindo 30 resultados. Refine a pesquisa.','filter-count'));
 }
 
 function renderCandidates() {
   const root = $('suite-kanban'), term = normalize($('candidate-search').value);
-  const order = $('candidate-sort')?.value || 'new'; root.replaceChildren();
+  const order = $('candidate-sort')?.value || 'new',stageFilter=$('candidate-stage-filter')?.value||'all'; root.replaceChildren();
   let total = 0;
   for (const stage of stages) {
+    if(stageFilter!=='all'&&stage!==stageFilter)continue;
     const col = node('section', '', 'suite-stage');
     const filtered = state.candidates.filter(c => c.stage === stage && normalize([c.name, c.email, c.jobTitle, c.phone].join(' ')).includes(term));
     filtered.sort((a, b) => order === 'name' ? (a.name || '').localeCompare(b.name || '', 'pt-BR') : (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     total += filtered.length;
     col.append(node('h3', `${stage} · ${filtered.length}`));
     for (const c of filtered.slice(0, 45)) {
-      const item = card(c.name, c.jobTitle || 'Vaga não informada'); item.append(node('small', c.email || 'Sem e-mail'));
+      const item = card(c.name, c.jobTitle || 'Vaga não informada');
+      const phone=String(c.phone||'').replace(/\D/g,''),contactHint=c.contactPreference||'Não informada';
+      item.append(node('small', `${c.email||'Sem e-mail'} · ${c.phone||'Sem telefone'} · Contato: ${contactHint}`));
+      if(phone.length>=10&&phone.length<=13){const links=node('div','','rh-contact-actions');const tel=node('a','Ligar','suite-link');tel.href='tel:+'+(phone.length<=11?'55':'')+phone;const wa=node('a','WhatsApp','suite-link');wa.href='https://wa.me/'+(phone.length<=11?'55':'')+phone;wa.target='_blank';wa.rel='noopener noreferrer';links.append(tel,wa);item.append(links);}
       const stageSelect = node('select'); stageSelect.setAttribute('aria-label', `Etapa de ${c.name}`);
       for (const s of stages) stageSelect.add(new Option(s, s)); stageSelect.value = c.stage;
       stageSelect.addEventListener('change', async () => {
@@ -99,6 +106,7 @@ function renderCandidates() {
 }
 $('candidate-search').addEventListener('input', renderCandidates);
 $('candidate-sort').addEventListener('change', renderCandidates);
+$('candidate-stage-filter')?.addEventListener('change',renderCandidates);
 
 // CNPJ é opcional. Consulta sob demanda; a API é de terceiros e pode falhar ou limitar requisições.
 function validCnpj(raw) {
@@ -357,3 +365,17 @@ const exportButton = addButton('Baixar backup de todas as coleções (.json)', a
   finally { exportButton.disabled = false; }
 });
 $('tab-backup').querySelector('.backup-grid .panel').append(exportButton);
+
+$('overview-activity-search')?.addEventListener('input',renderDashboard);
+// CSV disponível somente em sessão administrativa. Nunca expõe candidatos no site público.
+$('candidate-export')?.addEventListener('click',()=>{
+ if(!authorized||!auth.currentUser)return;
+ const term=normalize($('candidate-search').value||'');
+ const rows=state.candidates.filter(c=>normalize([c.name,c.email,c.phone,c.jobTitle,c.stage].join(' ')).includes(term));
+ const headers=['Nome','Telefone','Contato preferido','E-mail','Vaga','Etapa','Data'];
+ const safeCell=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
+ const csv='\uFEFF'+[headers,...rows.map(c=>[c.name,c.phone,c.contactPreference||'Não informada',c.email,c.jobTitle,c.stage,c.createdAt?.toDate?.()?.toLocaleDateString('pt-BR')||''])].map(row=>row.map(safeCell).join(';')).join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download='contrata-sul-candidaturas-'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);
+ msg(`${rows.length} candidato(s) exportado(s). Guarde o CSV com acesso restrito.`);
+});

@@ -69,12 +69,15 @@ service cloud.firestore {
       return field is string && field.size() <= maxLen;
     }
     function validCandidaturaAdmin() {
-      return request.resource.data.keys().hasOnly(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
+      return request.resource.data.keys().hasOnly(['jobId','jobTitle','name','email','phone','contactPreference','message','consent','stage','createdAt','updatedAt'])
         && shortText(request.resource.data.jobId,128)
         && shortText(request.resource.data.jobTitle,100)
         && shortText(request.resource.data.name,100)
         && shortText(request.resource.data.email,150)
         && shortText(request.resource.data.phone,25)
+        && request.resource.data.get('contactPreference','WhatsApp') in ['WhatsApp','Ligação','E-mail']
+        && request.resource.data.get('contactPreference','WhatsApp') in ['WhatsApp','Ligação','E-mail']
+        && request.resource.data.get('contactPreference','WhatsApp') in ['WhatsApp','Ligação','E-mail']
         && shortText(request.resource.data.message,1500)
         && request.resource.data.consent == true
         && request.resource.data.stage in ['Recebido','Em análise','Entrevista','Aprovado','Encerrado']
@@ -83,16 +86,20 @@ service cloud.firestore {
     }
     match /candidaturas/{id} {
       allow create: if (isAdmin() && validCandidaturaAdmin()) || (request.auth == null
-        && request.resource.data.keys().hasOnly(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
-        && request.resource.data.keys().hasAll(['jobId','jobTitle','name','email','phone','message','consent','stage','createdAt','updatedAt'])
+        && request.resource.data.keys().hasOnly(['jobId','jobTitle','name','email','phone','contactPreference','message','consent','stage','createdAt','updatedAt'])
+        && request.resource.data.keys().hasAll(['jobId','jobTitle','name','email','phone','contactPreference','message','consent','stage','createdAt','updatedAt'])
         && shortText(request.resource.data.jobId, 128)
         && request.resource.data.jobId.matches('^[a-zA-Z0-9_-]+$')
         && exists(/databases/$(database)/documents/vagas/$(request.resource.data.jobId))
         && get(/databases/$(database)/documents/vagas/$(request.resource.data.jobId)).data.published == true
         && request.resource.data.jobTitle == get(/databases/$(database)/documents/vagas/$(request.resource.data.jobId)).data.title
         && shortText(request.resource.data.name, 100) && request.resource.data.name.size() > 1
-        && shortText(request.resource.data.email, 150) && request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')
-        && shortText(request.resource.data.phone, 25) && request.resource.data.phone.size() > 5
+        && shortText(request.resource.data.email, 150)
+        && (request.resource.data.email == '' || request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$'))
+        && request.resource.data.get('contactPreference','WhatsApp') in ['WhatsApp','Ligação','E-mail']
+        && (request.resource.data.get('contactPreference','WhatsApp') != 'E-mail' || request.resource.data.email != '')
+        && shortText(request.resource.data.phone, 25)
+        && request.resource.data.phone.matches('^[0-9]{10,13}$')
         && shortText(request.resource.data.message, 1500)
         && request.resource.data.consent == true
         && request.resource.data.stage == 'Recebido'

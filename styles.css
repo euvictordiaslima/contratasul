@@ -134,3 +134,24 @@ html{scroll-behavior:smooth}body{overflow-x:hidden}button,a,input,select,textare
 body.dark-mode .job-share{background:#142a3b!important;color:#e5eff5!important;border-color:#557083!important}
 body.dark-mode .job-share:hover{background:#203f57!important}
 @media(max-width:480px){.job-card-actions>*{max-width:100%}.job-share{min-height:43px}}
+
+/* Layout editorial 2026: menos ornamentos, melhor usabilidade em vagas. */
+:root{--cs-editorial:#102b3f;--cs-accent:#bc9152}
+.jobs-section{padding-block:clamp(68px,8vw,116px);scroll-margin-top:90px}
+.jobs-heading h2{max-width:780px;letter-spacing:-.035em}
+.jobs-heading p{line-height:1.72;max-width:630px}
+.jobs-tools,.jobs-extra-tools{gap:14px;align-items:end}
+.jobs-tools input,.jobs-tools select,.jobs-extra-tools select{min-height:48px;border-radius:10px;border:1px solid #c9d8e3}
+.jobs-list{gap:20px}
+.job-card{border:1px solid #dee7ec!important;border-radius:15px!important;box-shadow:0 7px 26px rgba(8,35,54,.055)!important;padding:clamp(22px,3vw,30px)!important}
+.job-card h3{line-height:1.3;letter-spacing:-.02em}
+.job-card-actions{gap:10px;flex-wrap:wrap}
+.job-card-actions a,.job-card-actions button{min-height:43px;border-radius:9px}
+.job-card:focus-within{outline:2px solid #b68b51;outline-offset:3px}
+.quick-jobs-panel{box-shadow:0 12px 42px rgba(8,40,63,.07)}
+.faq-search-label{display:block;color:#24445c;font-size:12px;font-weight:750;margin:10px 0 16px}
+.faq-search-label input{display:block;width:100%;max-width:100%;background:#f8fafc;color:#173b54;border:1px solid #d5e2eb;border-radius:10px;padding:13px 15px;margin-top:7px}
+.faq-list details[hidden]{display:none!important}
+body.dark-mode .faq-search-label{color:#213e54!important}
+body.dark-mode .faq-search-label input{color:#15374e!important;background:#fff!important;border-color:#c8d6e1!important}
+@media(max-width:740px){.jobs-heading{gap:20px}.job-card{padding:21px!important}.jobs-tools{grid-template-columns:1fr!important}}

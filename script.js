@@ -270,3 +270,9 @@
   document.getElementById('vagas')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
  });
 })();
+
+// Pesquisa acessível nas perguntas frequentes, sem nova requisição ao servidor.
+(() => {const input=document.getElementById('faq-search'),root=input?.closest('.faq-list');if(!input||!root)return;
+ const normalized=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ input.addEventListener('input',()=>{const term=normalized(input.value.trim());root.querySelectorAll('details').forEach(row=>{row.hidden=!!term&&!normalized(row.textContent).includes(term);});});
+})();
