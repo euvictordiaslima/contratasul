@@ -2,8 +2,7 @@ import { getApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, getDocsFromServer, addDoc, updateDoc, setDoc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-import {getStorage,ref as storageRef,getBlob} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
-const storage=getStorage(getApp());
+import {decodeResume,saveResume,safeResumeName,MIME} from './resume-utils.js';
 const auth = getAuth(getApp());
 const db = getFirestore(getApp());
 const $ = id => document.getElementById(id);
@@ -20,23 +19,45 @@ const dateFormat = value => { try { const d = value?.toDate?.() || new Date(valu
 const addButton = (label, fn, className = 'secondary') => { const el = node('button', label, className); el.type = 'button'; el.addEventListener('click', fn); return el; };
 const clamp = (value, len) => String(value ?? '').trim().slice(0, len);
 const friendlyError = error => error?.code === 'permission-denied' ? 'Operação bloqueada pelas regras do Firestore. Verifique as regras atualizadas.' : (error?.code || error?.message || 'Erro desconhecido');
+async function fetchResume(candidate){
+ if(!authorized||!auth.currentUser||candidate.resumeStore!=='firestore-v1')throw Error('Currículo não disponível nesta versão.');
+ const snap=await getDoc(doc(db,'curriculos',candidate.id));
+ if(!snap.exists())throw Error('O arquivo do currículo não foi encontrado.');
+ const record=snap.data();
+ if(record.candidateId!==candidate.id||record.fileName!==candidate.resumeName||record.fileSize!==candidate.resumeSize)throw Error('O arquivo não corresponde ao candidato.');
+ return {bytes:decodeResume(record),record};
+}
 async function downloadResume(candidate,button){
- if(!authorized||!auth.currentUser||!candidate.resumePath)return;
- if(!/^curriculos\/[A-Za-z0-9_-]{1,128}\/[A-Za-z0-9_-]{1,128}\/curriculo\.(pdf|docx)$/.test(candidate.resumePath)){
-  msg('Referência de currículo inválida.');return;
- }
- button.disabled=true;const label=button.textContent;button.textContent='Preparando currículo...';
+ button.disabled=true;const label=button.textContent;button.textContent='Preparando arquivo...';
  try{
-  const blob=await getBlob(storageRef(storage,candidate.resumePath));
-  const name=String(candidate.resumeName||'curriculo.pdf').replace(/[^A-Za-z0-9._ -]/g,'_').slice(0,120);
-  const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download=name||'curriculo.pdf';document.body.append(link);link.click();link.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),15000);
-  msg('Download do currículo solicitado. Guarde o arquivo em local seguro.');
- }catch(error){msg('Não foi possível baixar o currículo. Confira as regras do Storage e a configuração CORS do bucket. '+(error.code||''));}
+  const {bytes,record}=await fetchResume(candidate);
+  saveResume(bytes,record.fileName,record.fileType);
+  msg('Download do currículo iniciado. Guarde o arquivo em local seguro.');
+ }catch(error){msg('Não foi possível baixar o currículo: '+(error.message||error.code));}
  finally{button.disabled=false;button.textContent=label;}
 }
-
+let previewUrl=null;
+function previewDialog(){
+ let dialog=document.getElementById('resume-preview-dialog');if(dialog)return dialog;
+ dialog=document.createElement('dialog');dialog.id='resume-preview-dialog';dialog.className='resume-preview-dialog';
+ dialog.innerHTML='<div class="resume-preview-top"><div><small>DOCUMENTO PRIVADO · CONTRATA SUL</small><h2 id="resume-preview-name"></h2></div><button type="button" id="resume-preview-close" aria-label="Fechar prévia">✕ Fechar</button></div><iframe title="Visualização do currículo PDF" id="resume-preview-frame"></iframe><p>Currículos são dados pessoais. Não compartilhe sem autorização.</p>';
+ document.body.append(dialog);
+ dialog.querySelector('#resume-preview-close').addEventListener('click',()=>dialog.close());
+ dialog.addEventListener('close',()=>{dialog.querySelector('iframe').removeAttribute('src');if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=null;});
+ return dialog;
+}
+async function previewResume(candidate,button){
+ button.disabled=true;const label=button.textContent;button.textContent='Abrindo...';
+ try{
+  const {bytes,record}=await fetchResume(candidate);
+  if(record.fileType!==MIME.pdf)throw Error('Prévia disponível apenas para PDF. Use Baixar currículo para DOCX.');
+  const dialog=previewDialog();if(previewUrl)URL.revokeObjectURL(previewUrl);
+  previewUrl=URL.createObjectURL(new Blob([bytes],{type:MIME.pdf}));
+  dialog.querySelector('#resume-preview-name').textContent=safeResumeName(record.fileName,record.fileType);
+  dialog.querySelector('iframe').src=previewUrl;dialog.showModal();
+ }catch(error){msg('Não foi possível visualizar: '+(error.message||error.code));}
+ finally{button.disabled=false;button.textContent=label;}
+}
 
 // Dados ficam apenas no Firestore; nenhuma informação pessoal é divulgada no site público.
 function listen(name, handler) {
@@ -115,10 +136,16 @@ function renderCandidates() {
         finally { stageSelect.disabled = false; }
       });
       item.append(stageSelect);
-      if(c.resumePath){
+      if(c.resumeStore==='firestore-v1'){
         const resume=addButton('↓ Baixar currículo',()=>downloadResume(c,resume),'resume-download');
-        resume.title='Baixar currículo privado (PDF ou DOCX)';
-        item.append(resume);
+        resume.title='Baixar currículo privado do Firestore';item.append(resume);
+        if(c.resumeType===MIME.pdf){
+          const preview=addButton('Visualizar PDF',()=>previewResume(c,preview),'resume-preview-button');
+          preview.title='Visualizar PDF no painel';item.append(preview);
+        }
+        item.append(node('small',`Currículo anexado · ${Math.ceil((c.resumeSize||0)/1024)} KB · acesso restrito`,'resume-stored'));
+      }else if(c.resumePath){
+        item.append(node('small','Currículo antigo no Storage · requer migração manual','resume-missing'));
       }else{
         item.append(node('small','Cadastro antigo · currículo não anexado','resume-missing'));
       }
@@ -389,7 +416,7 @@ const exportButton = addButton('Baixar backup de todas as coleções (.json)', a
     const blob = new Blob([json], { type: 'application/json' }), url = URL.createObjectURL(blob);
     const link = document.createElement('a'); link.href = url; link.download = `contrata-sul-completo-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-    msg('Backup JSON exportado. Contém dados pessoais, mas não os arquivos PDF/DOCX: exporte os currículos também na aba Candidatos.');
+    msg('Backup JSON exportado. Contém dados pessoais, mas não os arquivos PDF/DOCX: exporte também os currículos da aba Candidatos em ZIP.');
   } catch (error) { msg('Falha no backup: ' + friendlyError(error)); }
   finally { exportButton.disabled = false; }
 });

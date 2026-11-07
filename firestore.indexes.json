@@ -1,0 +1,10 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "curriculos",
+      "fieldPath": "contentBase64",
+      "indexes": []
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
   "hosting": {
     "public": ".",
@@ -20,7 +21,7 @@
       "**/service-account*.json",
       "**/*private*.json",
       "*.mjs",
-      "storage.rules"
+      "firestore.indexes.json"
     ],
     "headers": [
       {
@@ -81,8 +82,5 @@
         ]
       }
     ]
-  },
-  "storage": {
-    "rules": "storage.rules"
   }
 }

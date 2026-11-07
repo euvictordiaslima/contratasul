@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "deploy": "firebase deploy --only firestore:rules,storage,hosting"
+    "deploy": "firebase deploy --only firestore:rules,firestore:indexes,hosting"
   },
   "devDependencies": {
     "firebase-tools": "^14.0.0"

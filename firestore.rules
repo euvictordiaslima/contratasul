@@ -110,7 +110,7 @@ service cloud.firestore {
     function validCandidaturaAdmin() {
       return request.resource.data.keys().hasOnly([
         'jobId','jobTitle','name','email','phone','contactPreference','message','consent','stage',
-        'resumePath','resumeName','resumeType','resumeSize','uploaderUid','createdAt','updatedAt'
+        'resumePath','resumeStore','resumeName','resumeType','resumeSize','uploaderUid','createdAt','updatedAt'
       ])
         && shortText(request.resource.data.jobId,128)
         && shortText(request.resource.data.jobTitle,100)
@@ -123,6 +123,7 @@ service cloud.firestore {
         && request.resource.data.stage in ['Recebido','Em análise','Entrevista','Aprovado','Encerrado']
         && request.resource.data.createdAt is timestamp
         && request.resource.data.updatedAt is timestamp
+        && (!request.resource.data.keys().hasAny(['resumeStore']) || request.resource.data.resumeStore == 'firestore-v1')
         && (!request.resource.data.keys().hasAny(['resumePath']) || (
           shortText(request.resource.data.resumePath,300)
           && shortText(request.resource.data.resumeName,120)
@@ -133,44 +134,76 @@ service cloud.firestore {
           && shortText(request.resource.data.uploaderUid,128)
         ));
     }
+    // Documentos privados: somente o administrador pode ler currículos.
+    // Um candidato anônimo só pode CRIAR o arquivo junto à candidatura, em lote atômico.
+    match /curriculos/{id} {
+      allow get, list: if isAdmin();
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && request.resource.data.keys().hasOnly([
+          'candidateId','ownerUid','fileName','fileType','fileSize','contentBase64','createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'candidateId','ownerUid','fileName','fileType','fileSize','contentBase64','createdAt'
+        ])
+        && request.resource.data.candidateId == id
+        && request.resource.data.ownerUid == request.auth.uid
+        && shortText(request.resource.data.fileName,120)
+        && request.resource.data.fileName.size() > 0
+        && request.resource.data.fileType in ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        && request.resource.data.fileSize is int
+        && request.resource.data.fileSize >= 100
+        && request.resource.data.fileSize <= 358400
+        && request.resource.data.contentBase64 is string
+        && request.resource.data.contentBase64.size() >= 136
+        && request.resource.data.contentBase64.size() <= 480000
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/candidaturas/$(id)).data.uploaderUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/candidaturas/$(id)).data.resumeStore == 'firestore-v1'
+        && getAfter(/databases/$(database)/documents/candidaturas/$(id)).data.resumeName == request.resource.data.fileName
+        && getAfter(/databases/$(database)/documents/candidaturas/$(id)).data.resumeSize == request.resource.data.fileSize
+        && getAfter(/databases/$(database)/documents/candidaturas/$(id)).data.resumeType == request.resource.data.fileType;
+      allow update: if false;
+      allow delete: if recentAdmin();
+    }
     match /candidaturas/{id} {
-      // Toda candidatura enviada pelo site exige referência ao currículo privado no Storage.
       allow create: if (isAdmin() && validCandidaturaAdmin()) || (request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
         && request.resource.data.keys().hasOnly([
           'jobId','jobTitle','name','email','phone','contactPreference','message','consent','stage',
-          'resumePath','resumeName','resumeType','resumeSize','uploaderUid','createdAt','updatedAt'
+          'resumeStore','resumeName','resumeType','resumeSize','uploaderUid','createdAt','updatedAt'
         ])
         && request.resource.data.keys().hasAll([
           'jobId','jobTitle','name','email','phone','contactPreference','message','consent','stage',
-          'resumePath','resumeName','resumeType','resumeSize','uploaderUid','createdAt','updatedAt'
+          'resumeStore','resumeName','resumeType','resumeSize','uploaderUid','createdAt','updatedAt'
         ])
-        && shortText(request.resource.data.jobId, 128)
+        && shortText(request.resource.data.jobId,128)
         && request.resource.data.jobId.matches('^[a-zA-Z0-9_-]+$')
         && exists(/databases/$(database)/documents/vagas/$(request.resource.data.jobId))
         && get(/databases/$(database)/documents/vagas/$(request.resource.data.jobId)).data.published == true
         && request.resource.data.jobTitle == get(/databases/$(database)/documents/vagas/$(request.resource.data.jobId)).data.title
-        && shortText(request.resource.data.name, 100) && request.resource.data.name.size() > 1
-        && shortText(request.resource.data.email, 150)
+        && shortText(request.resource.data.name,100) && request.resource.data.name.size() > 1
+        && shortText(request.resource.data.email,150)
         && (request.resource.data.email == '' || request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$'))
         && request.resource.data.contactPreference in ['WhatsApp','Ligação','E-mail']
         && (request.resource.data.contactPreference != 'E-mail' || request.resource.data.email != '')
-        && shortText(request.resource.data.phone, 25)
+        && shortText(request.resource.data.phone,25)
         && request.resource.data.phone.matches('^[0-9]{10,13}$')
-        && shortText(request.resource.data.message, 1500)
+        && shortText(request.resource.data.message,1500)
         && request.resource.data.consent == true
         && request.resource.data.stage == 'Recebido'
         && request.resource.data.uploaderUid == request.auth.uid
+        && request.resource.data.resumeStore == 'firestore-v1'
         && shortText(request.resource.data.resumeName,120)
         && request.resource.data.resumeName.size() > 0
         && request.resource.data.resumeSize is int
         && request.resource.data.resumeSize >= 100
-        && request.resource.data.resumeSize <= 5242880
+        && request.resource.data.resumeSize <= 358400
         && request.resource.data.resumeType in ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-        && request.resource.data.resumePath == (
-          'curriculos/' + request.auth.uid + '/' + id + '/curriculo.'
-          + (request.resource.data.resumeType == 'application/pdf' ? 'pdf' : 'docx')
-        )
+        && getAfter(/databases/$(database)/documents/curriculos/$(id)).data.ownerUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/curriculos/$(id)).data.fileSize == request.resource.data.resumeSize
+        && getAfter(/databases/$(database)/documents/curriculos/$(id)).data.fileType == request.resource.data.resumeType
+        && getAfter(/databases/$(database)/documents/curriculos/$(id)).data.fileName == request.resource.data.resumeName
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time);
       allow get, list: if isAdmin();

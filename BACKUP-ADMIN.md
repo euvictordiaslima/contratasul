@@ -1,9 +1,8 @@
-# Backup da Contrata Sul V5
+# Backups e privacidade — Contrata Sul V6
 
-1. No painel Admin > Backup e restauração, exporte o JSON com os dados do Firestore.
-2. Em Admin > Candidatos, use **Exportar currículos (ZIP)** para baixar os arquivos PDF/DOCX privados. O botão respeita a pesquisa de candidatos, com até 100 currículos ou 150 MB por lote.
-3. Guarde JSON e ZIP em local protegido: ambos contêm dados pessoais.
-4. A restauração JSON recupera os metadados de currículos, **mas não restaura os arquivos no Storage**. A recuperação dos arquivos exige envio/restauração separada para os mesmos caminhos.
-5. Authentication, senhas, Rules, configurações de hospedagem e usuários administrativos não são restaurados pelo JSON.
-
-**Firestore Rules: atualizar/publicar `firestore.rules`. Storage Rules: atualizar/publicar `storage.rules`.**
+- **Backup JSON**: exporta registros e metadados, mas NÃO os bytes dos currículos.
+- **Admin → Candidatos → Exportar currículos (ZIP)**: exporta os arquivos privados em PDF/DOCX. Guarde esse ZIP em local restrito.
+- **Restauração**: o JSON restaura metadados; a importação automática de arquivos ZIP ainda não está implementada. Não presuma que um JSON sozinho recupera currículos.
+- **Exclusão protegida**: ao excluir uma candidatura V6 no admin, a candidatura e o documento privado do currículo são apagados juntos em um lote atômico.
+- **Currículos antigos do Storage (V5)**: não são migrados nem excluídos automaticamente. Se já houver arquivos antigos, providencie migração/limpeza manual autorizada.
+- Não compartilhe backups com dados pessoais. Considere a LGPD e estabeleça prazo de retenção e procedimento para pedidos de exclusão.
