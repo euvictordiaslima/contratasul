@@ -1,3 +1,5 @@
+> **Atualização V7:** este documento é histórico. Siga `LEIA-PRIMEIRO-V7-CORRECOES.md` para os procedimentos atuais.
+
 # Contrata Sul V5 — Novo visual + candidatura com currículo obrigatório
 
 ## 1. O que mudou

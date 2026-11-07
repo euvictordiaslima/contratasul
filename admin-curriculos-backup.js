@@ -6,7 +6,7 @@ import {firebaseConfig} from './firebase-config.js';
 const app=getApps()[0]||initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const button=document.getElementById('resume-backup'),status=document.getElementById('resume-backup-status');
 const text=value=>{status.textContent=value;};
-const validCandidate=c=>c.resumeStore==='firestore-v1'&&/^[A-Za-z0-9_-]{1,128}$/.test(c.id)&&c.resumeSize>=100&&c.resumeSize<=358400;
+const validCandidate=c=>c.resumeStore==='firestore-v1'&&/^[A-Za-z0-9_-]{1,128}$/.test(c.id)&&c.resumeSize>=100&&c.resumeSize<=716800;
 const normalize=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const cleanName=value=>normalize(value).replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48)||'candidato';
 const crcTable=Uint32Array.from({length:256},(_,n)=>{let c=n;for(let i=0;i<8;i++)c=c&1?0xedb88320^(c>>>1):c>>>1;return c>>>0;});

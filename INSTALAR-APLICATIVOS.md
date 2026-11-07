@@ -1,3 +1,5 @@
+> **Atualização V7:** este documento é histórico. Siga `LEIA-PRIMEIRO-V7-CORRECOES.md` para os procedimentos atuais.
+
 # Contrata Sul V6 no Android e no iPhone
 
 Primeiro publique os arquivos V6 no endereço `https://euvictordiaslima.github.io/contratasul/`.

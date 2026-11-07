@@ -13,13 +13,37 @@ const safeDate=value=>{if(!value)return '—';try{const d=value.toDate?.()||new 
 const selectedCompany=()=>state.companies.find(c=>c.id===selected);
 const filtered=type=>state[type].filter(row=>row.companyId===selected);
 const allowedStatus=['Em análise','Entrevista','Aprovado','Contratado','Desligado','Encerrado'];
-function clear(){for(const unsubscribe of subs)unsubscribe();subs=[];allowed=false;selected='';Object.keys(state).forEach(k=>state[k]=[]);$('crm-company').replaceChildren(new Option('Selecione uma empresa cadastrada',''));render();}
+function clear(){for(const unsubscribe of subs)unsubscribe();subs=[];allowed=false;selected='';Object.keys(state).forEach(k=>state[k]=[]);$('crm-company').replaceChildren(new Option('Selecione uma empresa cadastrada',''));$('crm-company-results').replaceChildren();$('crm-company-results').hidden=true;$('crm-company-count').textContent='';render();}
 function listen(key,path){subs.push(onSnapshot(collection(db,path),snap=>{state[key]=snap.docs.map(d=>({id:d.id,...d.data()}));if(key==='companies')fillCompanies();if(key==='candidates')fillCandidates();render();},error=>feedback(`Falha ao carregar ${path}: ${error.code||error.message}`)));}
 onAuthStateChanged(auth,async user=>{clear();if(!user)return;try{const record=await getDoc(doc(db,'admins',user.uid));if(!record.exists()||record.data().active!==true)return;allowed=true;listen('companies','empresas');listen('relationships','crm_relacionamentos');listen('candidates','candidaturas');listen('jobs','vagas');for(const [key,path] of Object.entries(collections))listen(key,path);}catch(error){feedback('Não foi possível verificar o acesso: '+(error.code||error.message));}});
-function fillCompanies(){const picker=$('crm-company'),term=norm($('crm-company-filter')?.value);const prior=selected;
+let searchResultsClosed=false;
+const matchingCompanies=()=>{const term=norm($('crm-company-filter').value.trim());return [...state.companies].filter(c=>norm([c.name,c.tradeName,c.cnpj,c.city,c.state].join(' ')).includes(term)).sort((a,b)=>String(a.tradeName||a.name).localeCompare(String(b.tradeName||b.name),'pt-BR'));};
+function openCompany(id){
+ const company=state.companies.find(c=>c.id===id);if(!company)return;
+ selected=id;searchResultsClosed=true;$('crm-company-filter').value=company.tradeName||company.name;
+ fillCompanies();$('crm-company').value=id;
+ for(const form of document.querySelectorAll('#crm-details .crm-form')){delete form.dataset.editId;form.querySelector('button[type=submit]')?.removeAttribute('data-editing');}
+ render();document.dispatchEvent(new CustomEvent('crm-company-change',{detail:{companyId:selected}}));
+ $('crm-details').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function fillCompanies(){
+ const picker=$('crm-company'),term=norm($('crm-company-filter').value.trim()),matches=matchingCompanies(),prior=selected;
  picker.replaceChildren(new Option('Selecione uma empresa cadastrada',''));
- for(const c of [...state.companies].filter(c=>norm([c.name,c.tradeName,c.cnpj,c.city].join(' ')).includes(term)||c.id===prior).sort((a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR')))picker.add(new Option(`${c.tradeName||c.name} · ${c.city||'cidade não informada'}`,c.id));
- if(state.companies.some(c=>c.id===prior))picker.value=prior;else{selected='';picker.value='';}
+ for(const c of matches.slice(0,150))picker.add(new Option(`${c.tradeName||c.name} · ${c.city||'cidade não informada'}`,c.id));
+ // Ao selecionar uma empresa, o campo de pesquisa continua mostrando a opção escolhida.
+ if(prior&&matches.some(c=>c.id===prior))picker.value=prior;
+ const results=$('crm-company-results'),count=$('crm-company-count');results.replaceChildren();
+ if(!allowed){count.textContent='Entre como administrador para pesquisar.';results.hidden=true;return;}
+ count.textContent=term?`${matches.length} ${matches.length===1?'empresa encontrada':'empresas encontradas'}`:`${state.companies.length} empresas cadastradas`;
+ results.hidden=!term||searchResultsClosed;
+ if(results.hidden)return;
+ if(!matches.length){results.append(el('p','Nenhuma empresa corresponde à pesquisa. Confira o nome ou cadastre a empresa primeiro.','crm-company-no-results'));return;}
+ for(const c of matches.slice(0,12)){
+  const b=el('button','','crm-company-result');b.type='button';
+  b.append(el('strong',c.tradeName||c.name||'Empresa'),el('small',[c.name!==c.tradeName?c.name:'',c.city,c.state,c.cnpj].filter(Boolean).join(' · ')));
+  b.addEventListener('click',()=>openCompany(c.id));results.append(b);
+ }
+ if(matches.length>12)results.append(el('p','Exibindo 12 empresas. Refine sua pesquisa.','crm-company-no-results'));
 }
 function fillCandidates(){const picker=$('crm-person-candidate'),term=norm($('crm-person-candidate-search')?.value),previous=picker.value;
  picker.replaceChildren(new Option('Selecione um candidato',''));
@@ -28,8 +52,13 @@ function fillCandidates(){const picker=$('crm-person-candidate'),term=norm($('cr
 }
 $('crm-person-candidate-search').addEventListener('input',fillCandidates);
 
-$('crm-company').addEventListener('change',event=>{selected=event.target.value;for(const form of document.querySelectorAll('#crm-details .crm-form')){delete form.dataset.editId;form.querySelector('button[type=submit]')?.removeAttribute('data-editing');}render();document.dispatchEvent(new CustomEvent('crm-company-change',{detail:{companyId:selected}}));});
-$('crm-company-filter').addEventListener('input',fillCompanies);
+$('crm-company').addEventListener('change',event=>{if(event.target.value){openCompany(event.target.value);}else{selected='';render();document.dispatchEvent(new CustomEvent('crm-company-change',{detail:{companyId:''}}));}});
+$('crm-company-filter').addEventListener('input',()=>{searchResultsClosed=false;if(selected){selected='';render();document.dispatchEvent(new CustomEvent('crm-company-change',{detail:{companyId:''}}));}fillCompanies();});
+$('crm-company-filter').addEventListener('keydown',event=>{
+ if(event.key==='Escape'){searchResultsClosed=true;fillCompanies();return;}
+ if(event.key==='ArrowDown'){const first=$('crm-company-results').querySelector('button');if(first){event.preventDefault();first.focus();}}
+ if(event.key==='Enter'){const first=matchingCompanies()[0];if(first){event.preventDefault();openCompany(first.id);}}
+});
 // Vincula automaticamente a vaga pelo nome da empresa para exibição, sem inferir contratação.
 function jobsForCompany(company){return state.jobs.filter(j=>j.companyId===company.id||(j.cnpj&&company.cnpj&&j.cnpj===company.cnpj)||norm(j.company)===norm(company.name)||Boolean(company.tradeName&&norm(j.company)===norm(company.tradeName)));}
 function candidatesForCompany(company){const ids=new Set(jobsForCompany(company).map(j=>j.id));return state.candidates.filter(c=>ids.has(c.jobId));}

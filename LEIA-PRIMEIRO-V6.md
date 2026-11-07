@@ -1,3 +1,5 @@
+> **Atualização V7:** este documento é histórico. Siga `LEIA-PRIMEIRO-V7-CORRECOES.md` para os procedimentos atuais.
+
 # Contrata Sul V6 — Redesign + Currículos sem Firebase Storage
 
 ## O que mudou

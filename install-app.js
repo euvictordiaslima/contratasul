@@ -4,7 +4,6 @@
  if('serviceWorker' in navigator && window.isSecureContext){
    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>console.warn('Aplicativo não registrado:',e.message)),{once:true});
  }
- let installEvent=null;
  const button=document.getElementById('install-app');
  const dialog=document.getElementById('install-help');
  const feedback=document.getElementById('connectivity-status');
@@ -18,10 +17,8 @@
    feedback.textContent='Sem conexão. Consulta de vagas, login e candidaturas exigem internet.';
   }
  }
- window.addEventListener('beforeinstallprompt',event=>{
-  event.preventDefault();installEvent=event;refresh();
- });
- window.addEventListener('appinstalled',()=>{installEvent=null;refresh();});
+ // Permite que o navegador apresente seu aviso de instalação nativo.
+ window.addEventListener('appinstalled',refresh);
  window.addEventListener('online',refresh);window.addEventListener('offline',refresh);
  function instructions(){
    if(!dialog)return;
@@ -34,10 +31,7 @@
  }
  if(button)button.addEventListener('click',async()=>{
    if(alreadyInstalled()||!isMobile)return;
-   if(installEvent){const prompt=installEvent;installEvent=null;
-     try {await prompt.prompt();await prompt.userChoice;} catch(e){console.warn('Instalação indisponível:',e.message)}
-     refresh();
-   }else instructions();
+   instructions();
  });
  if(dialog){dialog.querySelector('[data-close-install]')?.addEventListener('click',()=>dialog.close());
    dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});}
