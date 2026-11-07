@@ -1,0 +1,41 @@
+/* Atualização visual do admin — sem alterar regras ou fluxos de autenticação */
+:root{--admin-accent:#c39a5f;--admin-border:#dbe5eb;--admin-ink:#1a3447}
+body{background:#f4f7f9;color:#1b3448;font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif}
+header{background:#0d2537;border-bottom:1px solid #2c475b;min-height:76px;padding-block:18px}
+header .brand{letter-spacing:.08em;font-weight:850}
+header .brand small{color:#aebfcb;letter-spacing:.13em}
+main{padding-inline:clamp(18px,3vw,56px)}
+.heading{padding:35px 0 28px;margin-bottom:26px;border-bottom:1px solid #dce6ec}
+.heading h1{font-size:clamp(29px,2.8vw,43px);letter-spacing:-.045em;color:#163247}
+.heading p{color:#5a7183;line-height:1.7}
+.admin-shell{grid-template-columns:248px minmax(0,1fr);gap:clamp(20px,2.4vw,38px)}
+.admin-sidebar{background:#102e43;border:1px solid #27485e;border-radius:18px;padding:20px 12px;box-shadow:0 14px 28px rgba(12,37,54,.09)}
+.admin-sidebar .admin-tabs .tab{border-radius:10px;padding:13px 14px;line-height:1.35;color:#dbe8ef}
+.admin-sidebar .admin-tabs .tab:hover{background:#1d435c}
+.admin-sidebar .admin-tabs .tab.active{background:#284f67;color:#fff;border-left:3px solid #d7ae6e}
+.sidebar-label{color:#a8c1d0}
+.sidebar-search input{background:#193d55;border-color:#3b6178;color:#fff}
+.admin-workspace{min-width:0}
+.panel,.suite-metric,.metric{background:#fff;border:1px solid #dce6ed;border-radius:16px;box-shadow:0 8px 24px rgba(15,43,62,.035)}
+.panel{padding:clamp(22px,2.4vw,34px)}
+.section-head{margin:16px 0 23px}
+.section-head h2{font-size:clamp(25px,2.5vw,34px);letter-spacing:-.04em;color:#173247}
+.section-head p{color:#647c8e;line-height:1.7}
+.suite-metrics{gap:16px}
+.suite-metric{padding:24px 20px;border-top:3px solid #c39a5f}
+.suite-metric strong{font-size:clamp(26px,2.4vw,34px)}
+input,select,textarea{border-radius:10px;border:1px solid #c8d8e3;background:#fff;min-height:44px}
+textarea{min-height:110px}
+input:focus,select:focus,textarea:focus{outline:2px solid #88b2ca;outline-offset:1px;box-shadow:0 0 0 3px rgba(57,118,154,.1)}
+button{border-radius:10px;min-height:42px}
+button:not(.secondary):not(.danger){background:#b98d4f;color:#0b2536}
+button:hover:not(:disabled){filter:brightness(.96)}
+.suite-stage{background:#edf2f5;border:1px solid #dce6ed;border-radius:14px}
+.suite-item,.trash-row,.vacancy{border-color:#e0e9ee}
+.suite-item{box-shadow:0 3px 12px rgba(13,39,57,.03)}
+.filter-bar,.rh-list-search,.delete-center-filters{gap:14px}
+@media(max-width:1050px){.admin-shell{grid-template-columns:210px minmax(0,1fr);gap:18px}}
+@media(max-width:740px){main{padding-inline:16px}.admin-shell{display:block}.admin-sidebar{padding:12px;margin-bottom:20px;border-radius:14px}.admin-sidebar .admin-tabs .tab{padding:11px 13px}.heading{padding:25px 0}.panel{padding:20px}.suite-metric{padding:18px 15px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
+.sidebar-search{color:#d6e6f0!important}
+.sidebar-search input::placeholder{color:#bdcedb}

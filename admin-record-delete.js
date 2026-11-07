@@ -2,7 +2,8 @@ import {getApps,initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/
 import {firebaseConfig} from './firebase-config.js';
 import {getAuth,onAuthStateChanged,reauthenticateWithCredential,EmailAuthProvider} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {getFirestore,collection,doc,getDoc,getDocsFromServer,deleteDoc,query,where,limit,addDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-const app=getApps()[0]||initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
+import {getStorage,ref as storageRef,deleteObject} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
+const app=getApps()[0]||initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),storage=getStorage(app),$=id=>document.getElementById(id);
 const allowedNames={empresas:'Empresas',candidaturas:'Candidaturas',entrevistas:'Entrevistas',crm_contatos:'Contatos',crm_vinculos:'Profissionais vinculados',crm_solicitacoes:'Solicitações',crm_tarefas:'Tarefas',crm_atividades:'Anotações',crm_relacionamentos:'Situação comercial',crm_propostas:'Propostas',crm_financeiro:'Financeiro',crm_documentos:'Documentos (referências)',crm_avaliacoes:'Avaliações',portal_empresas:'Acessos empresariais',midia_site:'Mídias do site'};
 const $$=sel=>document.querySelector(sel);
 let isAdmin=false,selected=null,rows=[];
@@ -75,9 +76,19 @@ $('record-delete-form').addEventListener('submit',async event=>{
   const ref=doc(db,coll,id),snapshot=await getDoc(ref);if(!snapshot.exists())throw Error('Registro não existe mais.');
   await ensureNoDependencies(coll,id,snapshot.data());
   await deleteDoc(ref);
+  // Apaga o arquivo privado associado, após excluir o registro do Firestore.
+  // Se o Storage falhar, avisamos o administrador: o arquivo órfão requer limpeza manual.
+  let storageWarning='';
+  if(coll==='candidaturas'&&typeof snapshot.data().resumePath==='string'){
+   const path=snapshot.data().resumePath;
+   if(/^curriculos\/[A-Za-z0-9_-]{1,128}\/[A-Za-z0-9_-]{1,128}\/curriculo\.(pdf|docx)$/.test(path)){
+    try{await deleteObject(storageRef(storage,path));}
+    catch(err){storageWarning=' O currículo não foi removido do Storage; exclua o arquivo manualmente no Firebase Console.';console.warn('Limpeza de currículo:',err.code);}
+   }
+  }
   // Histórico é imutável para operação de negócio; append-only, mesmo se falhar.
   try{await addDoc(collection(db,'historico'),{action:'Exclusão administrativa',detail:`${allowedNames[coll]}: ${id}`.slice(0,180),actor:user.uid,at:serverTimestamp()});}catch{}
-  close();note('Registro excluído com sucesso. Atualizando a lista...');await reload();
+  close();await reload();note('Registro excluído.'+storageWarning);
  }catch(e){const messages={'auth/invalid-credential':'Senha incorreta.','auth/wrong-password':'Senha incorreta.','permission-denied':'Acesso negado. Verifique as Rules e a sessão.'};error.textContent=messages[e.code]||e.message||'Não foi possível excluir.';}
  finally{button.disabled=false;$('record-delete-password').value='';}
 });

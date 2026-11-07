@@ -19,7 +19,8 @@
       "*.json",
       "**/service-account*.json",
       "**/*private*.json",
-      "*.mjs"
+      "*.mjs",
+      "storage.rules"
     ],
     "headers": [
       {
@@ -80,5 +81,8 @@
         ]
       }
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

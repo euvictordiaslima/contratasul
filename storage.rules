@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+    // Currículos são privados. Visitantes não podem listar nem ler arquivos.
+    match /curriculos/{uid}/{candidateId}/{fileName} {
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && candidateId.matches('^[A-Za-z0-9_-]{1,128}$')
+        && fileName in ['curriculo.pdf', 'curriculo.docx']
+        && request.resource.size >= 100
+        && request.resource.size <= 5 * 1024 * 1024
+        && ((fileName == 'curriculo.pdf' && request.resource.contentType == 'application/pdf')
+          || (fileName == 'curriculo.docx' && request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+      allow get: if isAdmin();
+      allow list: if false;
+      // O administrador remove o arquivo após excluir a candidatura no Firestore.
+      // O candidato só pode limpar um upload que ainda não gerou uma candidatura.
+      allow delete: if isAdmin() || (request.auth != null && request.auth.uid == uid
+        && !firestore.exists(/databases/(default)/documents/candidaturas/$(candidateId)));
+      allow update: if false;
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

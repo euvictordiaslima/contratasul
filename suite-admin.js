@@ -2,6 +2,8 @@ import { getApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, getDocsFromServer, addDoc, updateDoc, setDoc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
+import {getStorage,ref as storageRef,getBlob} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
+const storage=getStorage(getApp());
 const auth = getAuth(getApp());
 const db = getFirestore(getApp());
 const $ = id => document.getElementById(id);
@@ -18,6 +20,23 @@ const dateFormat = value => { try { const d = value?.toDate?.() || new Date(valu
 const addButton = (label, fn, className = 'secondary') => { const el = node('button', label, className); el.type = 'button'; el.addEventListener('click', fn); return el; };
 const clamp = (value, len) => String(value ?? '').trim().slice(0, len);
 const friendlyError = error => error?.code === 'permission-denied' ? 'Operação bloqueada pelas regras do Firestore. Verifique as regras atualizadas.' : (error?.code || error?.message || 'Erro desconhecido');
+async function downloadResume(candidate,button){
+ if(!authorized||!auth.currentUser||!candidate.resumePath)return;
+ if(!/^curriculos\/[A-Za-z0-9_-]{1,128}\/[A-Za-z0-9_-]{1,128}\/curriculo\.(pdf|docx)$/.test(candidate.resumePath)){
+  msg('Referência de currículo inválida.');return;
+ }
+ button.disabled=true;const label=button.textContent;button.textContent='Preparando currículo...';
+ try{
+  const blob=await getBlob(storageRef(storage,candidate.resumePath));
+  const name=String(candidate.resumeName||'curriculo.pdf').replace(/[^A-Za-z0-9._ -]/g,'_').slice(0,120);
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download=name||'curriculo.pdf';document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+  msg('Download do currículo solicitado. Guarde o arquivo em local seguro.');
+ }catch(error){msg('Não foi possível baixar o currículo. Confira as regras do Storage e a configuração CORS do bucket. '+(error.code||''));}
+ finally{button.disabled=false;button.textContent=label;}
+}
+
 
 // Dados ficam apenas no Firestore; nenhuma informação pessoal é divulgada no site público.
 function listen(name, handler) {
@@ -96,6 +115,14 @@ function renderCandidates() {
         finally { stageSelect.disabled = false; }
       });
       item.append(stageSelect);
+      if(c.resumePath){
+        const resume=addButton('↓ Baixar currículo',()=>downloadResume(c,resume),'resume-download');
+        resume.title='Baixar currículo privado (PDF ou DOCX)';
+        item.append(resume);
+      }else{
+        item.append(node('small','Cadastro antigo · currículo não anexado','resume-missing'));
+      }
+
       item.append(addButton('Excluir candidatura',()=>document.dispatchEvent(new CustomEvent('admin-request-delete',{detail:{collection:'candidaturas',id:c.id,label:c.name}})),'outline-danger'));
       if (c.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)) { const contact = node('a', 'Enviar e-mail', 'suite-link'); contact.href = `mailto:${encodeURIComponent(c.email)}`; item.append(contact); }
       col.append(item);
@@ -362,7 +389,7 @@ const exportButton = addButton('Baixar backup de todas as coleções (.json)', a
     const blob = new Blob([json], { type: 'application/json' }), url = URL.createObjectURL(blob);
     const link = document.createElement('a'); link.href = url; link.download = `contrata-sul-completo-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-    msg('Backup completo exportado. Contém dados pessoais de candidatos: guarde o arquivo em local seguro.');
+    msg('Backup JSON exportado. Contém dados pessoais, mas não os arquivos PDF/DOCX: exporte os currículos também na aba Candidatos.');
   } catch (error) { msg('Falha no backup: ' + friendlyError(error)); }
   finally { exportButton.disabled = false; }
 });

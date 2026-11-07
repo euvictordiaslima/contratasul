@@ -42,14 +42,16 @@
       menuToggle.setAttribute('aria-label', isOpen ? 'Fechar menu' : 'Abrir menu');
     });
     nav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+      nav.querySelectorAll('details[open]').forEach(item => item.removeAttribute('open'));
       nav.classList.remove('open');
       menuToggle.setAttribute('aria-expanded', 'false');
       menuToggle.setAttribute('aria-label', 'Abrir menu');
     }));
   }
 
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && nav) { nav.classList.remove('open'); menuToggle?.setAttribute('aria-expanded','false'); } });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && nav) { nav.classList.remove('open'); nav.querySelectorAll('details[open]').forEach(item=>item.removeAttribute('open')); menuToggle?.setAttribute('aria-expanded','false'); } });
   document.addEventListener('click', event => { if (nav?.classList.contains('open') && !event.target.closest('.nav-wrap')) { nav.classList.remove('open'); menuToggle?.setAttribute('aria-expanded','false'); } });
+  document.addEventListener('click', event => { if (nav && !event.target.closest('.nav-more')) nav.querySelectorAll('.nav-more[open]').forEach(item => item.removeAttribute('open')); });
   const links = [...document.querySelectorAll('.main-nav a[href^="#"]')];
   const observer = new IntersectionObserver(entries => { entries.forEach(entry => { if(entry.isIntersecting) { links.forEach(a => { const active = a.getAttribute('href') === '#' + entry.target.id; a.classList.toggle('active', active); if(active) a.setAttribute('aria-current','location'); else a.removeAttribute('aria-current'); }); } }); }, {rootMargin:'-25% 0px -65% 0px'});
   document.querySelectorAll('main section[id]').forEach(section => observer.observe(section));

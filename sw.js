@@ -1,9 +1,9 @@
 /* Contrata Sul — cache exclusivamente de conteúdo público estático.
  * Nunca armazena credenciais, respostas do Firestore ou telas administrativas.
  */
-const VERSION = 'cs-mobile-v2-20261102';
+const VERSION = 'cs-mobile-v5-20261107';
 const STATIC_ASSETS = [
-  './index.html','./styles.css','./script.js','./public-vagas.js','./site-content.js','./media-public.js','./favicon.svg',
+  './index.html','./styles.css','./visual-refresh.css','./v5-site.css','./script.js','./public-vagas.js','./site-content.js','./media-public.js','./favicon.svg',
   './icons/public-192.png','./icons/public-512.png','./manifest.webmanifest',
   './offline.html'
 ];
